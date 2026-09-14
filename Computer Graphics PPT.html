@@ -234,9 +234,11 @@ input[type=range]:focus{outline:1px auto var(--accent)}
   font-family:var(--serif);font-size:clamp(17px,1.5vw,23px);font-style:italic;color:var(--ink-dim);
   margin-top:22px;max-width:56ch;line-height:1.45;
 }
-.qrbox{display:flex;flex-direction:column;align-items:center;gap:clamp(12px,2vh,20px);margin-top:clamp(22px,4.5vh,46px)}
-.qrbox img{width:clamp(140px,17vh,200px);height:auto;border-radius:10px;border:1px solid var(--line-strong);box-shadow:0 0 40px rgba(0,0,0,.45)}
+.qrbox{display:flex;flex-direction:column;align-items:center;gap:clamp(12px,2vh,20px)}
+.qrbox img{width:clamp(150px,19vh,240px);height:auto;border-radius:10px;border:1px solid var(--line-strong);box-shadow:0 0 40px rgba(0,0,0,.45)}
 .qrbox .qr-cap{font-family:var(--mono);font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint)}
+.thx-grid{flex:1;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:clamp(48px,9vw,140px);min-height:0;width:100%}
+.thx-side{display:flex;flex-direction:column;justify-content:center;min-width:0}
 
 .title-foot{position:absolute;left:0;right:0;bottom:0;width:100%}
 .team{
@@ -1202,12 +1204,16 @@ input[type=range]:focus{outline:1px auto var(--accent)}
   <!-- ──────────────────────────── S14 · THANKS ──────────────────────────── -->
   <section class="slide" data-title="Thank you">
     <div class="slide-in thx">
-      <h1 class="hero">Thank <em>you</em></h1>
-      <p class="hero-deck" style="color:var(--ink-dim)">Questions and discussion.</p>
-      <figure class="qrbox">
-        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAewAAAHsAQMAAAAq5AwjAAAABlBMVEUTEQns59uga3/xAAACK0lEQVR42u2dUWrEMAxETS/g+99SN3Ab4kojZdmfhRaLF5ayTf1+wkQZje10rE8OG+Dg4ODg4ODg4ODg/44PP+Z18vr5c3LGwH1Gh1341/joAAf/e3yopO8v10nbwtYB9yeNR/PgJ2t+i3zuYn4/ArTyx18nmgdvp/kpzsdyqUfz4O00f+s8Sr07eTQP3tTPb8GvMPDVxuPnwRtoXgKZdx9yG/AumtejGpgV3uYRdXLlwTt4G40rtYHdub3JnYLmwQ/3Ntq0emKzvb2OnNR58Cbexiu8p5Tb4chsr05UoXnwBprfM7Cltntcb4M6D95E87+uZjt5jWiyBSKrBO/Tw3rTKqsOPJ/XrjZKPZoHP9nbaGITBl7TG3s+Hbjy4CfnNmJsIslxP2PxK2sPwDtpfkhiGS1tCe3x8+AtetiyllLvAo8r9S5A8+Cn97CpgGsOb6l7jdAezYOfn9u8qPBjlLWU9LDgnfz87lhtpC2xPhXlLa2hefAWmg+XHjthNc9JqxHQPHgPbyMpjdb26HBXXn6D5sGP1nxZP/9cZiwbw9E8eANvkza9ismJlx44YmSV4Mdrvq4onqtY+sht0osRuPLgh/ewIu8XFT7fC2gevIef92ZWd46UMJM5KfAemk9iflgafRawBxy8m+Z1J+AY6YVmRg8L3lTz+X3Fae0ZPSx4Pz9f1k/qhJT0uWgevE1uU6Kb8oJi5qTA++Xz/LsKcHBwcHBwcHBw8EPwb1zvyCOBjWFSAAAAAElFTkSuQmCC" alt="QR code — GitHub repository">
-        <span class="qr-cap">GitHub repository</span>
-      </figure>
+      <div class="thx-grid">
+        <div class="thx-side">
+          <h1 class="hero">Thank <em>you</em></h1>
+          <p class="hero-deck" style="color:var(--ink-dim)">Questions and discussion.</p>
+        </div>
+        <figure class="qrbox">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAewAAAHsAQMAAAAq5AwjAAAABlBMVEUTEQns59uga3/xAAACK0lEQVR42u2dUWrEMAxETS/g+99SN3Ab4kojZdmfhRaLF5ayTf1+wkQZje10rE8OG+Dg4ODg4ODg4ODg/44PP+Z18vr5c3LGwH1Gh1341/joAAf/e3yopO8v10nbwtYB9yeNR/PgJ2t+i3zuYn4/ArTyx18nmgdvp/kpzsdyqUfz4O00f+s8Sr07eTQP3tTPb8GvMPDVxuPnwRtoXgKZdx9yG/AumtejGpgV3uYRdXLlwTt4G40rtYHdub3JnYLmwQ/3Ntq0emKzvb2OnNR58Cbexiu8p5Tb4chsr05UoXnwBprfM7Cltntcb4M6D95E87+uZjt5jWiyBSKrBO/Tw3rTKqsOPJ/XrjZKPZoHP9nbaGITBl7TG3s+Hbjy4CfnNmJsIslxP2PxK2sPwDtpfkhiGS1tCe3x8+AtetiyllLvAo8r9S5A8+Cn97CpgGsOb6l7jdAezYOfn9u8qPBjlLWU9LDgnfz87lhtpC2xPhXlLa2hefAWmg+XHjthNc9JqxHQPHgPbyMpjdb26HBXXn6D5sGP1nxZP/9cZiwbw9E8eANvkza9ismJlx44YmSV4Mdrvq4onqtY+sht0osRuPLgh/ewIu8XFT7fC2gevIef92ZWd46UMJM5KfAemk9iflgafRawBxy8m+Z1J+AY6YVmRg8L3lTz+X3Fae0ZPSx4Pz9f1k/qhJT0uWgevE1uU6Kb8oJi5qTA++Xz/LsKcHBwcHBwcHBw8EPwb1zvyCOBjWFSAAAAAElFTkSuQmCC" alt="QR code — GitHub repository">
+          <span class="qr-cap">GitHub repository</span>
+        </figure>
+      </div>
     </div>
   </section>
 
