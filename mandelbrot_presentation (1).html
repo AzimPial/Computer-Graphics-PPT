@@ -1,0 +1,2548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Mandelbrot Set | Southeast University</title>
+    
+    <!-- Clean Minimalist Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- KaTeX for LaTeX Mathematics -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+
+    <style>
+        /* ================= ULTRA-SMOOTH KEYNOTE DESIGN SYSTEM ================= */
+        :root {
+            --bg-canvas: #050811;
+            --bg-surface: #0a1120;
+            --bg-surface-elevated: #101a2f;
+            --bg-glass: rgba(16, 26, 46, 0.78);
+            --border-glass: rgba(56, 189, 248, 0.18);
+            --border-glass-hover: rgba(56, 189, 248, 0.5);
+            
+            --text-title: #ffffff;
+            --text-body: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+
+            --cyan: #38bdf8;
+            --blue: #3b82f6;
+            --indigo: #6366f1;
+            --purple: #a855f7;
+            --emerald: #10b981;
+            --amber: #f59e0b;
+            --rose: #f43f5e;
+
+            --grad-primary: linear-gradient(135deg, #38bdf8 0%, #6366f1 50%, #a855f7 100%);
+            --grad-cyan: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            --glow-cyan: 0 0 20px rgba(56, 189, 248, 0.35);
+
+            --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-heading: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            
+            --slide-transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        body.light-theme {
+            --bg-canvas: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-surface-elevated: #f1f5f9;
+            --bg-glass: rgba(255, 255, 255, 0.95);
+            --border-glass: rgba(14, 165, 233, 0.22);
+            --border-glass-hover: rgba(14, 165, 233, 0.6);
+
+            --text-title: #0f172a;
+            --text-body: #334155;
+            --text-muted: #64748b;
+            --text-dim: #94a3b8;
+            --grad-primary: linear-gradient(135deg, #0284c7 0%, #4f46e5 50%, #9333ea 100%);
+            --glow-cyan: 0 0 20px rgba(2, 132, 199, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-canvas);
+            color: var(--text-body);
+            font-family: var(--font-sans);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Ambient Background Lighting */
+        .ambient-glow {
+            position: fixed;
+            top: -15%;
+            left: 15%;
+            width: 55vw;
+            height: 55vw;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.09) 0%, transparent 65%);
+            filter: blur(90px);
+            pointer-events: none;
+            z-index: 0;
+            animation: pulseGlow 9s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(1.15); opacity: 0.95; }
+        }
+
+        .academic-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: 
+                linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+            background-size: 44px 44px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header */
+        header {
+            position: relative;
+            z-index: 50;
+            height: 60px;
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-glass);
+            background: rgba(10, 17, 32, 0.85);
+            backdrop-filter: blur(16px);
+        }
+
+        body.light-theme header {
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .univ-badge {
+            background: var(--grad-primary);
+            color: #ffffff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-title {
+            font-family: var(--font-heading);
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-title);
+            letter-spacing: 0.2px;
+        }
+
+        .header-sub {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            padding-left: 14px;
+            border-left: 1px solid var(--border-glass);
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-action {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-glass);
+            color: var(--text-title);
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-action:hover {
+            border-color: var(--cyan);
+            color: var(--cyan);
+            background: rgba(56, 189, 248, 0.12);
+            transform: translateY(-1px);
+        }
+
+        /* Slide Viewport */
+        .presentation-viewport {
+            position: relative;
+            flex: 1;
+            width: 100vw;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 26px 52px;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(18px) scale(0.99);
+            transition: var(--slide-transition);
+            overflow: hidden;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+
+        .slide.prev {
+            transform: translateY(-18px) scale(0.99);
+        }
+
+        /* Slide Header */
+        .slide-header {
+            margin-bottom: 16px;
+            flex-shrink: 0;
+        }
+
+        .slide-meta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            font-weight: 800;
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+
+        .slide-meta::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+            animation: pulseDot 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+        }
+
+        .slide-title {
+            font-family: var(--font-heading);
+            font-size: clamp(32px, 3.6vw, 44px);
+            font-weight: 900;
+            color: var(--text-title);
+            letter-spacing: -0.7px;
+            line-height: 1.12;
+            background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        body.light-theme .slide-title {
+            background: linear-gradient(135deg, #0f172a 40%, #1e40af 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .slide-subtitle {
+            font-size: 14.5px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .hero-title {
+            font-family: var(--font-heading);
+            font-size: clamp(44px, 5.5vw, 70px);
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            line-height: 1.05;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffffff 15%, #7dd3fc 50%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(var(--glow-cyan));
+        }
+
+        body.light-theme .hero-title {
+            background: linear-gradient(135deg, #0f172a 15%, #0284c7 60%, #4338ca 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* 2-Column Layout: Unified Text Left + Large Picture Right */
+        .unified-layout {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 26px;
+            flex: 1;
+            align-items: stretch;
+            min-height: 0;
+        }
+
+        .unified-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .visual-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Unified Bullet Points */
+        .unified-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .content-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .group-heading {
+            font-family: var(--font-heading);
+            font-size: 17.5px;
+            font-weight: 800;
+            color: var(--cyan);
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .point-item {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-body);
+            padding-left: 18px;
+            position: relative;
+        }
+
+        .point-item::before {
+            content: '•';
+            position: absolute;
+            left: 2px;
+            color: var(--cyan);
+            font-size: 16px;
+        }
+
+        .point-item strong {
+            color: var(--text-title);
+            font-weight: 700;
+        }
+
+        /* Math Callout Box */
+        .math-hero-box {
+            background: rgba(10, 17, 32, 0.85);
+            border: 1.5px solid rgba(56, 189, 248, 0.32);
+            border-radius: var(--radius-md);
+            padding: 12px 18px;
+            margin: 8px 0;
+            text-align: center;
+            color: var(--text-title);
+            font-size: 15.5px;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        body.light-theme .math-hero-box {
+            background: #ffffff;
+            border-color: rgba(2, 132, 199, 0.3);
+        }
+
+        /* Team Cards */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .team-card {
+            background: var(--bg-glass);
+            border: 1.5px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 18px 12px;
+            text-align: center;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .team-card:hover {
+            border-color: var(--cyan);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(56, 189, 248, 0.2);
+        }
+
+        .team-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--grad-primary);
+            border: 2.5px solid rgba(255, 255, 255, 0.4);
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            font-family: var(--font-heading);
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3);
+        }
+
+        .team-name {
+            font-weight: 800;
+            font-size: 14.5px;
+            color: var(--text-title);
+            margin-bottom: 6px;
+            line-height: 1.25;
+            font-family: var(--font-heading);
+        }
+
+        .team-id {
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            color: var(--cyan);
+            background: var(--bg-surface-elevated);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-glass);
+            font-weight: 700;
+        }
+
+        /* Table */
+        .clean-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            font-family: var(--font-mono);
+            margin: 6px 0;
+        }
+
+        .clean-table th {
+            background: var(--bg-surface-elevated);
+            color: var(--text-title);
+            padding: 7px 10px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-glass);
+            font-weight: 800;
+            font-size: 11.5px;
+            text-transform: uppercase;
+        }
+
+        .clean-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--border-glass);
+            color: var(--text-body);
+        }
+
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .tag-green {
+            background: rgba(16, 185, 129, 0.16);
+            color: var(--emerald);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+
+        .tag-red {
+            background: rgba(244, 63, 94, 0.16);
+            color: var(--rose);
+            border: 1px solid rgba(244, 63, 94, 0.35);
+        }
+
+        /* Canvas Simulator */
+        .simulator-box {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 320px;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1.5px solid rgba(56, 189, 248, 0.3);
+            background: #000000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+        }
+
+        .canvas-hud {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(10, 17, 32, 0.92);
+            border: 1px solid var(--border-glass);
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--cyan);
+            backdrop-filter: blur(12px);
+            pointer-events: none;
+            z-index: 20;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+
+        .canvas-controls-bar {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 17, 32, 0.94);
+            border: 1px solid var(--border-glass);
+            border-radius: 30px;
+            padding: 6px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(16px);
+            z-index: 20;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+        }
+
+        .tool-btn {
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tool-btn:hover, .tool-btn.active {
+            background: var(--cyan);
+            color: #040814;
+        }
+
+        /* Footer Controls */
+        footer {
+            position: relative;
+            z-index: 50;
+            height: 54px;
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid var(--border-glass);
+            background: rgba(10, 17, 32, 0.85);
+            backdrop-filter: blur(16px);
+        }
+
+        body.light-theme footer {
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        .slide-progress-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--border-glass);
+        }
+
+        .slide-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--grad-primary);
+            box-shadow: 0 0 10px var(--cyan);
+            transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .slide-indicator {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .slide-indicator span {
+            color: var(--text-title);
+            font-weight: 800;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon-control {
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-glass);
+            color: var(--text-title);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .icon-control:hover {
+            border-color: var(--cyan);
+            color: var(--cyan);
+            background: rgba(56, 189, 248, 0.12);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(4, 7, 14, 0.88);
+            backdrop-filter: blur(14px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-body {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 26px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .modal-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-card:hover {
+            border-color: var(--cyan);
+            background: rgba(56, 189, 248, 0.12);
+            transform: translateY(-2px);
+        }
+
+        /* ================= DYNAMIC SVG & MODEL ANIMATIONS ================= */
+        
+        /* Universal Transform Origin & SVG Support */
+        svg * {
+            transform-box: fill-box;
+        }
+
+        /* Slide 2: Outline Interactive & Dynamic Pipeline Animations */
+        .outline-station {
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease;
+        }
+
+        .outline-station:hover {
+            transform: translateX(4px);
+        }
+
+        .outline-station .station-bg {
+            transition: stroke-width 0.2s ease, fill-opacity 0.2s ease, stroke 0.2s ease;
+        }
+
+        .outline-station:hover .station-bg {
+            stroke-width: 2px !important;
+            fill-opacity: 0.28 !important;
+        }
+
+        body.light-theme .outline-station .station-bg {
+            fill: #ffffff !important;
+            stroke: rgba(14, 165, 233, 0.35) !important;
+        }
+
+        body.light-theme .outline-station:hover .station-bg {
+            stroke: var(--cyan) !important;
+            fill: #f0f9ff !important;
+        }
+
+        @keyframes outlineFlowAnim {
+            0% { stroke-dashoffset: 320; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        .anim-outline-flow {
+            stroke-dasharray: 45 135;
+            animation: outlineFlowAnim 2.8s linear infinite;
+        }
+
+        @keyframes photonTravelAnim {
+            0% { transform: translateY(0); opacity: 0; }
+            10% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { transform: translateY(220px); opacity: 0; }
+        }
+
+        .anim-photon-travel {
+            animation: photonTravelAnim 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes ringPulse1 {
+            0%, 100% { r: 12px; opacity: 0.9; stroke-width: 1.5; }
+            50% { r: 19px; opacity: 0.2; stroke-width: 2.5; }
+        }
+        @keyframes ringPulse2 {
+            0%, 100% { r: 12px; opacity: 0.9; stroke-width: 1.5; }
+            50% { r: 19px; opacity: 0.2; stroke-width: 2.5; }
+        }
+        @keyframes ringPulse3 {
+            0%, 100% { r: 12px; opacity: 0.9; stroke-width: 1.5; }
+            50% { r: 19px; opacity: 0.2; stroke-width: 2.5; }
+        }
+
+        .anim-ring-pulse-1 {
+            animation: ringPulse1 2.4s ease-in-out infinite;
+        }
+        .anim-ring-pulse-2 {
+            animation: ringPulse2 2.4s ease-in-out infinite 0.8s;
+        }
+        .anim-ring-pulse-3 {
+            animation: ringPulse3 2.4s ease-in-out infinite 1.6s;
+        }
+
+        /* Slide 3: IBM 370 CRT Monitor Phosphor Scan Line & Filament Pulse */
+        @keyframes crtPhosphorScan {
+            0% { transform: translateY(0); opacity: 0; }
+            10% { opacity: 0.95; }
+            85% { opacity: 0.95; }
+            100% { transform: translateY(145px); opacity: 0; }
+        }
+        .anim-scanline {
+            animation: crtPhosphorScan 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes filamentGlow {
+            0%, 100% { opacity: 0.65; filter: drop-shadow(0 0 2px var(--cyan)); }
+            50% { opacity: 1; filter: drop-shadow(0 0 10px var(--cyan)); }
+        }
+        .anim-filament {
+            animation: filamentGlow 3s ease-in-out infinite;
+        }
+
+        /* Slide 4: Complex Plane Orbit Point Pulse & Rotating Sweep */
+        @keyframes orbitPointPulse {
+            0% { r: 5px; opacity: 1; filter: drop-shadow(0 0 2px var(--cyan)); }
+            50% { r: 8px; opacity: 0.7; filter: drop-shadow(0 0 12px var(--cyan)); }
+            100% { r: 5px; opacity: 1; filter: drop-shadow(0 0 2px var(--cyan)); }
+        }
+        .anim-orbit-point {
+            animation: orbitPointPulse 2.4s infinite ease-in-out;
+        }
+
+        @keyframes rotateVector {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .anim-vector-rotate {
+            transform-origin: 170px 170px;
+            animation: rotateVector 12s linear infinite;
+        }
+
+        /* Slide 5: Construction Dual-Orbit Trajectory & Escape Tracer Photon */
+        @keyframes curveLaserStream {
+            0% { stroke-dashoffset: 350; }
+            100% { stroke-dashoffset: 0; }
+        }
+        .anim-escape-path {
+            stroke-dasharray: 35 140;
+            animation: curveLaserStream 2.5s linear infinite;
+        }
+
+        @keyframes escapeBeaconPulse {
+            0%, 100% { r: 6px; opacity: 0.9; stroke-width: 1.5; }
+            50% { r: 16px; opacity: 0.25; stroke-width: 3; }
+        }
+        .anim-escape-beacon {
+            animation: escapeBeaconPulse 1.6s ease-out infinite;
+        }
+
+        @keyframes boundPulse {
+            0%, 100% { r: 5px; opacity: 1; filter: drop-shadow(0 0 2px var(--emerald)); }
+            50% { r: 8px; opacity: 0.6; filter: drop-shadow(0 0 10px var(--emerald)); }
+        }
+        .anim-bound-node {
+            animation: boundPulse 2s ease-in-out infinite;
+        }
+
+        /* Slide 7: Applications 4-Quadrant Dynamic Models */
+        /* Quad 1: 5G Antenna RF Waves */
+        @keyframes rfWaveExpand {
+            0% { r: 6px; opacity: 0.95; stroke-width: 2; }
+            100% { r: 42px; opacity: 0; stroke-width: 0.5; }
+        }
+        .anim-rf-wave-1 { animation: rfWaveExpand 2.2s infinite ease-out; }
+        .anim-rf-wave-2 { animation: rfWaveExpand 2.2s infinite ease-out 0.7s; }
+        .anim-rf-wave-3 { animation: rfWaveExpand 2.2s infinite ease-out 1.4s; }
+
+        /* Quad 2: CGI Terrain Laser Scan */
+        @keyframes terrainScanLaser {
+            0% { transform: translateX(0); opacity: 0; }
+            15% { opacity: 0.95; }
+            85% { opacity: 0.95; }
+            100% { transform: translateX(115px); opacity: 0; }
+        }
+        .anim-terrain-scan {
+            animation: terrainScanLaser 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        /* Quad 3: Chaos PRNG Attractor Orbit */
+        @keyframes chaosAttractor {
+            0% { transform: translate(0, 0); }
+            20% { transform: translate(18px, -12px); }
+            40% { transform: translate(42px, 8px); }
+            60% { transform: translate(65px, -10px); }
+            80% { transform: translate(50px, 14px); }
+            100% { transform: translate(0, 0); }
+        }
+        .anim-chaos-dot {
+            animation: chaosAttractor 3.2s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
+        }
+
+        /* Quad 4: Compression Recursive Subdivision Scanner */
+        @keyframes quadtreeScanPulse {
+            0%, 100% { opacity: 0.25; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(1.02); }
+        }
+        .anim-quadtree-scan {
+            animation: quadtreeScanPulse 2s ease-in-out infinite;
+        }
+
+        /* Slide 8: Martin Perturbation Dynamic Offset */
+        @keyframes perturbOscillate {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0); }
+        }
+        .anim-perturb-vector {
+            animation: perturbOscillate 2s infinite ease-in-out;
+        }
+
+        /* Slide 9: Conclusion Tri-Pillar Synthesis Reactor */
+        @keyframes synthesisPerimeterStream {
+            0% { stroke-dashoffset: 800; }
+            100% { stroke-dashoffset: 0; }
+        }
+        .anim-synthesis-stream {
+            stroke-dasharray: 60 140;
+            animation: synthesisPerimeterStream 4s linear infinite;
+        }
+
+        @keyframes nucleusPulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px var(--cyan)); }
+            50% { transform: scale(1.08); filter: drop-shadow(0 0 16px var(--cyan)); }
+        }
+        .anim-nucleus-glow {
+            transform-origin: center;
+            animation: nucleusPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pillarGlow1 {
+            0%, 100% { r: 28px; opacity: 0.3; }
+            50% { r: 35px; opacity: 0.8; }
+        }
+        .anim-pillar-glow-1 { animation: pillarGlow1 2.8s ease-in-out infinite; }
+        .anim-pillar-glow-2 { animation: pillarGlow1 2.8s ease-in-out infinite 0.9s; }
+        .anim-pillar-glow-3 { animation: pillarGlow1 2.8s ease-in-out infinite 1.8s; }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow"></div>
+    <div class="academic-grid"></div>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="header-brand">
+            <span class="univ-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18L12 21L19 17.18V13.18L12 17L5 13.18Z"/></svg>
+                Southeast University
+            </span>
+            <span class="header-title">The Mandelbrot Set</span>
+            <span class="header-sub">Dept. of Computer Science & Engineering</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn-action" onclick="toggleTheme()" id="themeBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                Theme
+            </button>
+            <button class="btn-action" onclick="toggleOverview()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> 
+                Overview (O)
+            </button>
+            <button class="btn-action" onclick="toggleFullscreen()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> 
+                Fullscreen (F)
+            </button>
+        </div>
+    </header>
+
+    <!-- Slide Viewport -->
+    <main class="presentation-viewport" id="presentationViewport">
+
+        <!-- ================= SLIDE 1: TITLE & TEAM ================= -->
+        <section class="slide active" id="slide-1">
+            <div style="text-align: center; max-width: 1080px; margin: auto; display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                
+                <div style="display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+                    <span class="slide-meta">
+                        COMPUTER GRAPHICS & MATHEMATICAL MODELING
+                    </span>
+                </div>
+                
+                <h1 class="hero-title">
+                    The Mandelbrot Set
+                </h1>
+                
+                <p style="font-size: 18px; color: var(--text-muted); max-width: 780px; margin: 0 auto 16px; line-height: 1.5; font-weight: 500;">
+                    Mathematical Formulations, Computational Dynamics, Escape-Time Algorithms & Engineering Applications
+                </p>
+
+                <!-- Core Equation Pill -->
+                <div style="background: var(--bg-glass); border: 1.5px solid var(--border-glass); border-radius: 30px; padding: 8px 24px; display: inline-flex; align-items: center; justify-content: center; gap: 20px; margin: 0 auto 18px;">
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Southeast University • Dept. of CSE</span>
+                    <span style="color: var(--border-glass);">|</span>
+                    <span style="font-family: var(--font-mono); font-size: 15px; color: var(--cyan); font-weight: 800;">$z_{n+1} = z_n^2 + c$</span>
+                </div>
+
+                <!-- 5 Team Cards -->
+                <div>
+                    <div style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 2px; color: var(--cyan); font-weight: 800; margin-bottom: 10px;">Presented By</div>
+                    <div class="team-grid">
+                        <div class="team-card">
+                            <div class="team-avatar">SS</div>
+                            <div class="team-name">Samiul Haque Seam</div>
+                            <div class="team-id">2023200000160</div>
+                        </div>
+                        <div class="team-card">
+                            <div class="team-avatar">SH</div>
+                            <div class="team-name">Md Shahadat Hossan</div>
+                            <div class="team-id">2023200000599</div>
+                        </div>
+                        <div class="team-card">
+                            <div class="team-avatar">AP</div>
+                            <div class="team-name">Azim Pial</div>
+                            <div class="team-id">2023200000601</div>
+                        </div>
+                        <div class="team-card">
+                            <div class="team-avatar">WA</div>
+                            <div class="team-name">Wahid Imtiaz Arnob</div>
+                            <div class="team-id">2023200000616</div>
+                        </div>
+                        <div class="team-card">
+                            <div class="team-avatar">NS</div>
+                            <div class="team-name">Naima Sultana</div>
+                            <div class="team-id">2023200000636</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SLIDE 2: OUTLINE ================= -->
+        <section class="slide" id="slide-2">
+            <div class="slide-header">
+                <span class="slide-meta">STRUCTURE</span>
+                <h2 class="slide-title">Outline</h2>
+                <p class="slide-subtitle">A comprehensive breakdown from fundamental mathematics to real-world engineering applications.</p>
+            </div>
+            
+            <div class="unified-layout">
+                <!-- Left: Unified Text Section -->
+                <div class="unified-card">
+                    <div class="unified-content">
+                        <div class="content-group">
+                            <div class="group-heading">Part I: Theoretical Foundations</div>
+                            <div class="point-item"><strong>Introduction – Background:</strong> Historical evolution from 1918 Fatou-Julia theory to 1980 IBM Watson visualizations.</div>
+                            <div class="point-item"><strong>Basic Concept:</strong> The complex plane $\mathbb{C}$, Argand mapping, and the quadratic recurrence relation $z_{n+1} = z_n^2 + c$.</div>
+                        </div>
+
+                        <div class="content-group">
+                            <div class="group-heading">Part II: Construction & Algorithms</div>
+                            <div class="point-item"><strong>Construction:</strong> Step-by-step orbital tracing comparing bounded origin $c=0$ vs escaping point $c=1$.</div>
+                            <div class="point-item"><strong>Algorithm & Properties:</strong> Escape radius proof ($|z|>2 \implies x^2+y^2>4$), continuous shading $\nu(z)$, and Hausdorff dimension $\dim_H=2$.</div>
+                        </div>
+
+                        <div class="content-group">
+                            <div class="group-heading">Part III: Engineering & Horizons</div>
+                            <div class="point-item"><strong>Applications:</strong> Multiband 5G antennas, procedural CGI terrains, chaos cryptography, and fractal compression.</div>
+                            <div class="point-item"><strong>Research & Future Work:</strong> Martin's perturbation deep-zoom ($>10^{1000}\times$) and the MLC conjecture.</div>
+                            <div class="point-item"><strong>Conclusion:</strong> Synthesis of algorithmic simplicity, mathematical bridge, and practical power.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Large Relevant Animated Interactive Infographic -->
+                <div class="visual-card">
+                    <svg width="100%" height="100%" viewBox="0 0 340 370">
+                        <defs>
+                            <!-- Linear Gradients for Dynamic Laser Stream -->
+                            <linearGradient id="pipelineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9"/>
+                                <stop offset="50%" stop-color="#6366f1" stop-opacity="0.9"/>
+                                <stop offset="100%" stop-color="#10b981" stop-opacity="0.9"/>
+                            </linearGradient>
+
+                            <linearGradient id="cardGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="rgba(56,189,248,0.16)"/>
+                                <stop offset="100%" stop-color="rgba(10,17,32,0.85)"/>
+                            </linearGradient>
+
+                            <linearGradient id="cardGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="rgba(99,102,241,0.16)"/>
+                                <stop offset="100%" stop-color="rgba(10,17,32,0.85)"/>
+                            </linearGradient>
+
+                            <linearGradient id="cardGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="rgba(16,185,129,0.16)"/>
+                                <stop offset="100%" stop-color="rgba(10,17,32,0.85)"/>
+                            </linearGradient>
+
+                            <filter id="outlineGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="3" result="blur"/>
+                                <feMerge>
+                                    <feMergeNode in="blur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Main Vertical Bus Track -->
+                        <line x1="48" y1="40" x2="48" y2="330" stroke="rgba(148,163,184,0.15)" stroke-width="4" stroke-linecap="round"/>
+                        
+                        <!-- Flowing Laser Beam (Smooth Dashoffset) -->
+                        <line x1="48" y1="35" x2="48" y2="335" stroke="url(#pipelineGrad)" stroke-width="3" stroke-linecap="round" class="anim-outline-flow"/>
+
+                        <!-- Traveling Light Particle -->
+                        <g class="anim-photon-travel">
+                            <circle cx="48" cy="65" r="7" fill="rgba(56,189,248,0.4)" filter="url(#outlineGlow)"/>
+                            <circle cx="48" cy="65" r="3.5" fill="#ffffff"/>
+                        </g>
+
+                        <!-- Station 1: Theoretical Foundations -->
+                        <g class="outline-station" onclick="goToSlide(2)">
+                            <rect class="station-bg" x="18" y="20" width="306" height="90" rx="12" fill="url(#cardGrad1)" stroke="rgba(56,189,248,0.4)" stroke-width="1.2"/>
+                            
+                            <!-- Pulsing Station Node -->
+                            <circle class="anim-ring-pulse-1" cx="48" cy="65" r="14" fill="none" stroke="var(--cyan)" stroke-width="1.5"/>
+                            <circle cx="48" cy="65" r="8" fill="var(--cyan)"/>
+                            <circle cx="48" cy="65" r="3" fill="#ffffff"/>
+
+                            <!-- Text Content -->
+                            <text x="76" y="46" fill="var(--cyan)" font-size="11.5" font-weight="bold" font-family="monospace" letter-spacing="0.5">01 • THEORETICAL FOUNDATIONS</text>
+                            <text x="76" y="66" fill="var(--text-title)" font-size="11" font-weight="600" font-family="sans-serif">Background & History • Complex Plane (C)</text>
+                            
+                            <!-- Micro Badges -->
+                            <rect x="76" y="74" width="72" height="18" rx="4" fill="rgba(56,189,248,0.2)" stroke="rgba(56,189,248,0.4)"/>
+                            <text x="82" y="87" fill="var(--cyan)" font-size="9" font-weight="bold" font-family="monospace">Fatou-Julia</text>
+
+                            <rect x="154" y="74" width="76" height="18" rx="4" fill="rgba(56,189,248,0.2)" stroke="rgba(56,189,248,0.4)"/>
+                            <text x="160" y="87" fill="var(--cyan)" font-size="9" font-weight="bold" font-family="monospace">c = a + bi</text>
+                        </g>
+
+                        <!-- Station 2: Construction & GPU Algorithm -->
+                        <g class="outline-station" onclick="goToSlide(4)">
+                            <rect class="station-bg" x="18" y="130" width="306" height="90" rx="12" fill="url(#cardGrad2)" stroke="rgba(99,102,241,0.4)" stroke-width="1.2"/>
+                            
+                            <!-- Pulsing Station Node -->
+                            <circle class="anim-ring-pulse-2" cx="48" cy="175" r="14" fill="none" stroke="var(--indigo)" stroke-width="1.5"/>
+                            <circle cx="48" cy="175" r="8" fill="var(--indigo)"/>
+                            <circle cx="48" cy="175" r="3" fill="#ffffff"/>
+
+                            <!-- Text Content -->
+                            <text x="76" y="156" fill="var(--indigo)" font-size="11.5" font-weight="bold" font-family="monospace" letter-spacing="0.5">02 • ALGORITHMS & DYNAMICS</text>
+                            <text x="76" y="176" fill="var(--text-title)" font-size="11" font-weight="600" font-family="sans-serif">Orbital Trace • Bailout (x²+y²>4) • ν(z)</text>
+                            
+                            <!-- Micro Badges -->
+                            <rect x="76" y="184" width="94" height="18" rx="4" fill="rgba(99,102,241,0.2)" stroke="rgba(99,102,241,0.4)"/>
+                            <text x="82" y="197" fill="var(--indigo)" font-size="9" font-weight="bold" font-family="monospace">z_{n+1}=z_n²+c</text>
+
+                            <rect x="176" y="184" width="76" height="18" rx="4" fill="rgba(99,102,241,0.2)" stroke="rgba(99,102,241,0.4)"/>
+                            <text x="182" y="197" fill="var(--indigo)" font-size="9" font-weight="bold" font-family="monospace">Auto-Zoom</text>
+                        </g>
+
+                        <!-- Station 3: Engineering & Future Horizons -->
+                        <g class="outline-station" onclick="goToSlide(6)">
+                            <rect class="station-bg" x="18" y="240" width="306" height="90" rx="12" fill="url(#cardGrad3)" stroke="rgba(16,185,129,0.4)" stroke-width="1.2"/>
+                            
+                            <!-- Pulsing Station Node -->
+                            <circle class="anim-ring-pulse-3" cx="48" cy="285" r="14" fill="none" stroke="var(--emerald)" stroke-width="1.5"/>
+                            <circle cx="48" cy="285" r="8" fill="var(--emerald)"/>
+                            <circle cx="48" cy="285" r="3" fill="#ffffff"/>
+
+                            <!-- Text Content -->
+                            <text x="76" y="266" fill="var(--emerald)" font-size="11.5" font-weight="bold" font-family="monospace" letter-spacing="0.5">03 • APPLICATIONS & HORIZONS</text>
+                            <text x="76" y="286" fill="var(--text-title)" font-size="11" font-weight="600" font-family="sans-serif">5G Telecom • CGI • Perturbation</text>
+                            
+                            <!-- Micro Badges -->
+                            <rect x="76" y="294" width="80" height="18" rx="4" fill="rgba(16,185,129,0.2)" stroke="rgba(16,185,129,0.4)"/>
+                            <text x="82" y="307" fill="var(--emerald)" font-size="9" font-weight="bold" font-family="monospace">5G Antenna</text>
+
+                            <rect x="162" y="294" width="86" height="18" rx="4" fill="rgba(16,185,129,0.2)" stroke="rgba(16,185,129,0.4)"/>
+                            <text x="168" y="307" fill="var(--emerald)" font-size="9" font-weight="bold" font-family="monospace">Deep Zoom</text>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SLIDE 3: INTRODUCTION ================= -->
+        <section class="slide" id="slide-3">
+            <div class="slide-header">
+                <span class="slide-meta">BACKGROUND & HISTORY</span>
+                <h2 class="slide-title">Introduction – Background of the Topic</h2>
+                <p class="slide-subtitle">Historical evolution and the emergence of non-linear polynomial computer graphics.</p>
+            </div>
+            
+            <div class="unified-layout">
+                <!-- Left: Unified Text Section -->
+                <div class="unified-card">
+                    <div class="unified-content">
+                        <div class="content-group">
+                            <div class="group-heading">Historical Progression</div>
+                            <div class="point-item"><strong>1918 (Pierre Fatou & Gaston Julia):</strong> Formulated iteration theory of rational functions in complex analysis purely mathematically, without graphics hardware.</div>
+                            <div class="point-item"><strong>1975 (Benoît B. Mandelbrot):</strong> Coined the term <em>"Fractal"</em> (Latin <em>fractus</em>: broken/irregular) to describe fractional Hausdorff dimensions and scale-invariant natural phenomena.</div>
+                            <div class="point-item"><strong>1980 (IBM Thomas J. Watson Research Center):</strong> Mandelbrot generated the first computer visualization of the quadratic recurrence map $z \mapsto z^2 + c$ on IBM mainframe monitors.</div>
+                            <div class="point-item"><strong>1985 (Adrien Douady & John H. Hubbard):</strong> Proved fundamental topological theorems, including the connectedness of the Mandelbrot set $\mathcal{M}$.</div>
+                        </div>
+
+                        <div class="content-group">
+                            <div class="group-heading">Core Philosophy</div>
+                            <div class="point-item">Classical Euclidean geometry fails to capture natural roughness. Fractal geometry provides the mathematical framework for scale invariance, roughness, and dynamic boundaries.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Animated IBM Mainframe & Geometry Model -->
+                <div class="visual-card">
+                    <svg width="100%" height="100%" viewBox="0 0 320 340">
+                        <defs>
+                            <linearGradient id="crtScanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="var(--cyan)" stop-opacity="0"/>
+                                <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.95"/>
+                                <stop offset="100%" stop-color="var(--cyan)" stop-opacity="0"/>
+                            </linearGradient>
+                            <filter id="crtGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="3" result="blur"/>
+                                <feMerge>
+                                    <feMergeNode in="blur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Mainframe Screen Frame -->
+                        <rect x="15" y="15" width="290" height="200" rx="12" fill="#060b16" stroke="rgba(56,189,248,0.4)" stroke-width="1.8"/>
+                        
+                        <!-- CRT Screen Grid Matrix -->
+                        <line x1="20" y1="65" x2="300" y2="65" stroke="rgba(56,189,248,0.1)" stroke-width="1"/>
+                        <line x1="20" y1="115" x2="300" y2="115" stroke="rgba(56,189,248,0.1)" stroke-width="1"/>
+                        <line x1="20" y1="165" x2="300" y2="165" stroke="rgba(56,189,248,0.1)" stroke-width="1"/>
+                        <line x1="90" y1="20" x2="90" y2="210" stroke="rgba(56,189,248,0.1)" stroke-width="1"/>
+                        <line x1="160" y1="20" x2="160" y2="210" stroke="rgba(56,189,248,0.1)" stroke-width="1"/>
+                        <line x1="230" y1="20" x2="230" y2="210" stroke="rgba(56,189,248,0.1)" stroke-width="1"/>
+
+                        <!-- CRT Telemetry Header -->
+                        <text x="30" y="38" fill="var(--cyan)" font-size="10.5" font-weight="bold" font-family="monospace">IBM 370 • T.J. WATSON RES. 1980</text>
+                        <circle cx="282" cy="34" r="4" fill="var(--emerald)"/>
+
+                        <!-- Mathematical Mandelbrot Silhouette in Monitor -->
+                        <g class="anim-filament">
+                            <!-- Main Cardioid -->
+                            <path d="M 210,115 C 210,75 140,55 110,115 C 140,175 210,155 210,115 Z" fill="rgba(56,189,248,0.25)" stroke="var(--cyan)" stroke-width="2"/>
+                            <!-- Period-2 Bulb -->
+                            <circle cx="78" cy="115" r="22" fill="rgba(99,102,241,0.3)" stroke="var(--indigo)" stroke-width="1.8"/>
+                            <!-- Period-3 Bulb -->
+                            <circle cx="45" cy="115" r="8" fill="rgba(16,185,129,0.35)" stroke="var(--emerald)" stroke-width="1.4"/>
+                            <!-- Antenna spikes & cusp points -->
+                            <line x1="37" y1="115" x2="25" y2="115" stroke="var(--cyan)" stroke-width="1.5"/>
+                            <circle cx="120" cy="70" r="6" fill="rgba(56,189,248,0.3)" stroke="var(--cyan)" stroke-width="1.2"/>
+                            <circle cx="120" cy="160" r="6" fill="rgba(56,189,248,0.3)" stroke="var(--cyan)" stroke-width="1.2"/>
+                        </g>
+
+                        <!-- Animated Phosphor Scan Line -->
+                        <g class="anim-scanline">
+                            <line x1="20" y1="48" x2="300" y2="48" stroke="url(#crtScanGrad)" stroke-width="3" filter="url(#crtGlow)"/>
+                        </g>
+
+                        <!-- Quote Container (Theme Adaptive) -->
+                        <rect x="15" y="228" width="290" height="96" rx="10" fill="var(--bg-surface-elevated)" stroke="var(--border-glass)" stroke-width="1.2"/>
+                        <text x="30" y="254" fill="var(--text-title)" font-size="12" font-style="italic" font-family="sans-serif">"Clouds are not spheres, mountains are</text>
+                        <text x="30" y="274" fill="var(--text-title)" font-size="12" font-style="italic" font-family="sans-serif">not cones, and bark is not smooth."</text>
+                        <text x="135" y="304" fill="var(--cyan)" font-size="12" font-weight="bold" font-family="sans-serif">— Benoît B. Mandelbrot</text>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SLIDE 4: BASIC CONCEPT ================= -->
+        <section class="slide" id="slide-4">
+            <div class="slide-header">
+                <span class="slide-meta">MATHEMATICAL SPACE</span>
+                <h2 class="slide-title">Basic Concept</h2>
+                <p class="slide-subtitle">The complex plane $\mathbb{C}$, coordinate projection, and recurrence set membership.</p>
+            </div>
+            
+            <div class="unified-layout">
+                <!-- Left: Unified Text Section -->
+                <div class="unified-card">
+                    <div class="unified-content">
+                        <div class="content-group">
+                            <div class="group-heading">The Complex Field ($\mathbb{C}$)</div>
+                            <div class="point-item">Every test coordinate $c$ is expressed as a 2D complex number: <strong>$c = a + bi$</strong>, where $i = \sqrt{-1}$ ($i^2 = -1$).</div>
+                            <div class="point-item"><strong>Real Axis ($a = \text{Re}(c)$):</strong> Horizontal screen domain, tested typically in range $[-2.00, +0.70]$.</div>
+                            <div class="point-item"><strong>Imaginary Axis ($b = \text{Im}(c)$):</strong> Vertical screen domain, tested typically in range $[-1.20, +1.20]$.</div>
+                        </div>
+
+                        <div class="content-group">
+                            <div class="group-heading">The Quadratic Recurrence Rule</div>
+                            <div class="math-hero-box">
+                                $$z_0 = 0, \quad z_{n+1} = z_n^2 + c$$
+                            </div>
+                            <div class="point-item"><strong>Set Membership:</strong> The Mandelbrot set $\mathcal{M}$ is defined as the locus of points $c \in \mathbb{C}$ for which the orbit of 0 remains bounded for all $n \to \infty$: <strong>$\mathcal{M} = \{ c \in \mathbb{C} : \limsup_{n \to \infty} |z_n| \le 2 \}$</strong>.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Interactive Bounded Disk & Orbit Simulator -->
+                <div class="visual-card" style="padding: 0;">
+                    <div class="simulator-box" id="diskSimulatorBox">
+                        <canvas id="boundedDiskCanvas"></canvas>
+                        <div class="canvas-hud" id="diskHud">c = -0.750 + 0.100i | Bounded in Disk (|z| ≤ 2)</div>
+                        <div class="canvas-controls-bar">
+                            <button class="tool-btn active" id="diskAnimToggleBtn" onclick="toggleDiskAnimation()">Sweep: ON</button>
+                            <button class="tool-btn" onclick="setDiskPreset('origin')">c = 0 (Bound)</button>
+                            <button class="tool-btn" onclick="setDiskPreset('seahorse')">c = -0.75+0.1i</button>
+                            <button class="tool-btn" onclick="setDiskPreset('period3')">c = -0.12+0.74i</button>
+                            <button class="tool-btn" onclick="setDiskPreset('escape')">c = 0.6+0.6i (Escape)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SLIDE 5: CONSTRUCTION ================= -->
+        <section class="slide" id="slide-5">
+            <div class="slide-header">
+                <span class="slide-meta">ANALYTICAL TRACE</span>
+                <h2 class="slide-title">Construction</h2>
+                <p class="slide-subtitle">Step-by-step orbital walkthrough comparing bounded origin vs explosive divergence.</p>
+            </div>
+            
+            <div class="unified-layout">
+                <!-- Left: Unified Text Section -->
+                <div class="unified-card">
+                    <div class="unified-content">
+                        <div class="content-group">
+                            <div class="group-heading">Orbital Trace Comparison</div>
+                            
+                            <!-- Case 1 Table -->
+                            <div style="font-size: 13.5px; font-weight: 700; color: var(--emerald); margin-top: 4px;">Case 1: $c = 0$ (Origin) $\implies$ Bounded ($\in \mathcal{M}$)</div>
+                            <table class="clean-table">
+                                <thead>
+                                    <tr>
+                                        <th>$n$</th>
+                                        <th>$z_n^2 + c$</th>
+                                        <th>$z_n$ Value</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>$0$</td><td>Seed</td><td>$0$</td><td>$0 \le 2$ (Bound)</td></tr>
+                                    <tr><td>$1$</td><td>$0^2 + 0$</td><td>$0$</td><td>$0 \le 2$ (Bound)</td></tr>
+                                    <tr><td>$n \to \infty$</td><td>Invariant</td><td>$0$</td><td><span class="tag-pill tag-green">Solid Black</span></td></tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Case 2 Table -->
+                            <div style="font-size: 13.5px; font-weight: 700; color: var(--rose); margin-top: 8px;">Case 2: $c = 1$ $\implies$ Escaping ($\notin \mathcal{M}$)</div>
+                            <table class="clean-table">
+                                <thead>
+                                    <tr>
+                                        <th>$n$</th>
+                                        <th>$z_n^2 + c$</th>
+                                        <th>$z_n$ Value</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>$0$</td><td>Seed</td><td>$0$</td><td>$0 \le 2$ (Bound)</td></tr>
+                                    <tr><td>$1$</td><td>$0^2 + 1$</td><td>$1$</td><td>$1 \le 2$ (Bound)</td></tr>
+                                    <tr><td>$2$</td><td>$1^2 + 1$</td><td>$2$</td><td>$2 \le 2$ (Bound)</td></tr>
+                                    <tr><td>$3$</td><td>$2^2 + 1$</td><td>$5$</td><td><span class="tag-pill tag-red">$5 > 2$ Escapes</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="point-item" style="font-size: 13px;">
+                            <strong>Raster Construction:</strong> Points that never exceed radius 2 are colored solid interior black ($\in \mathcal{M}$). Points that exceed radius 2 are assigned an exterior palette color mapped to their exact escape iteration number $n$ ($\notin \mathcal{M}$).
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Animated Trajectory Curve & Escape Model -->
+                <div class="visual-card">
+                    <svg width="100%" height="100%" viewBox="0 0 320 340">
+                        <defs>
+                            <linearGradient id="escapeGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                                <stop offset="0%" stop-color="#38bdf8"/>
+                                <stop offset="50%" stop-color="#f59e0b"/>
+                                <stop offset="100%" stop-color="#f43f5e"/>
+                            </linearGradient>
+                            <filter id="escapeGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="3.5" result="blur"/>
+                                <feMerge>
+                                    <feMergeNode in="blur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Chart Axes -->
+                        <line x1="40" y1="280" x2="300" y2="280" stroke="rgba(148,163,184,0.4)" stroke-width="1.5"/>
+                        <line x1="40" y1="30" x2="40" y2="280" stroke="rgba(148,163,184,0.4)" stroke-width="1.5"/>
+                        <text x="35" y="24" fill="var(--text-title)" font-size="11" font-weight="bold" font-family="monospace">|z_n|</text>
+                        <text x="290" y="296" fill="var(--text-title)" font-size="11" font-weight="bold" font-family="monospace">n</text>
+
+                        <!-- Boundary Line |z|=2 -->
+                        <line x1="40" y1="200" x2="300" y2="200" stroke="rgba(244,63,94,0.5)" stroke-width="1.5" stroke-dasharray="4 4"/>
+                        <text x="205" y="194" fill="var(--rose)" font-size="11" font-weight="bold" font-family="monospace">Boundary |z| = 2</text>
+
+                        <!-- Case 1 Line: Invariant 0 (Emerald) -->
+                        <line x1="40" y1="280" x2="290" y2="280" stroke="var(--emerald)" stroke-width="3"/>
+                        <circle cx="40" cy="280" r="5" fill="var(--emerald)"/>
+                        <circle cx="100" cy="280" r="5" fill="var(--emerald)"/>
+                        <circle cx="160" cy="280" r="5" fill="var(--emerald)"/>
+                        <circle cx="220" cy="280" r="5" fill="var(--emerald)"/>
+                        <circle class="anim-bound-node" cx="220" cy="280" r="5" fill="var(--emerald)"/>
+                        <text x="130" y="315" fill="var(--emerald)" font-size="11" font-weight="bold" font-family="monospace">c = 0: Constant Invariant</text>
+
+                        <!-- Case 2 Curve: Animated Escape Trajectory (Rose / Cyan / Amber) -->
+                        <path d="M 40,280 L 100,240 L 160,200 L 220,70 L 250,35" fill="none" stroke="rgba(244,63,94,0.25)" stroke-width="3"/>
+                        <path d="M 40,280 L 100,240 L 160,200 L 220,70 L 250,35" fill="none" stroke="url(#escapeGrad)" stroke-width="3.5" class="anim-escape-path"/>
+                        
+                        <circle cx="40" cy="280" r="5" fill="var(--cyan)"/>
+                        <circle cx="100" cy="240" r="5" fill="var(--cyan)"/>
+                        <circle cx="160" cy="200" r="6" fill="var(--amber)"/>
+                        <circle cx="220" cy="70" r="7" fill="var(--rose)"/>
+                        
+                        <!-- Pulsing Escape Point Beacon at n=3 -->
+                        <circle class="anim-escape-beacon" cx="250" cy="35" r="8" fill="none" stroke="var(--rose)" stroke-width="2"/>
+                        <circle cx="250" cy="35" r="6" fill="var(--rose)" filter="url(#escapeGlow)"/>
+                        <circle cx="250" cy="35" r="2.5" fill="#ffffff"/>
+                        <text x="165" y="55" fill="var(--rose)" font-size="12" font-weight="bold" font-family="monospace">c = 1 Divergence!</text>
+
+                        <!-- Step Labels -->
+                        <text x="35" y="296" fill="var(--text-muted)" font-size="10" font-family="monospace">n=0</text>
+                        <text x="95" y="296" fill="var(--text-muted)" font-size="10" font-family="monospace">n=1</text>
+                        <text x="155" y="296" fill="var(--text-muted)" font-size="10" font-family="monospace">n=2</text>
+                        <text x="215" y="296" fill="var(--rose)" font-size="10" font-weight="bold" font-family="monospace">n=3</text>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SLIDE 6: ALGORITHM & MATH (WITH AUTO-ZOOM) ================= -->
+        <section class="slide" id="slide-6">
+            <div class="slide-header">
+                <span class="slide-meta">COMPUTATION & GPU</span>
+                <h2 class="slide-title">Algorithm / Mathematical Properties</h2>
+                <p class="slide-subtitle">Escape radius theorem, continuous potential shading, and cinematic auto-zooming Mandelbrot engine.</p>
+            </div>
+            
+            <div class="unified-layout">
+                <!-- Left: Unified Text Section -->
+                <div class="unified-card">
+                    <div class="unified-content">
+                        <div class="content-group">
+                            <div class="group-heading">The Escape Radius Theorem ($|z| > 2$)</div>
+                            <div class="point-item">By the reverse triangle inequality, when $|z_n| > 2$: <strong>$|z_{n+1}| \ge |z_n|^2 - |c| \ge |z_n|(|z_n|-1)$</strong>. Because $(|z_n|-1) > 1$, the orbit accelerates strictly to infinity.</div>
+                            <div class="point-item"><strong>GPU Bailout Optimization:</strong> Computing $\sqrt{x^2+y^2} > 2$ is rewritten as <strong>$x^2 + y^2 > 4$</strong>, eliminating slow square root instructions across millions of pixels.</div>
+                        </div>
+
+                        <div class="content-group">
+                            <div class="group-heading">Continuous Potential Shading $\nu(z)$</div>
+                            <div class="math-hero-box" style="font-size: 14.5px;">
+                                $$\nu(z) = n + 1 - \frac{\ln(\ln |z_n| / \ln 2)}{\ln 2}$$
+                            </div>
+                            <div class="point-item">Smoothly eliminates discrete color banding artifacts across infinite zoom depths.</div>
+                            <div class="point-item"><strong>Hausdorff Dimension:</strong> Proven by Mitsuhiro Shishikura (1998) that <strong>$\dim_H(\partial \mathcal{M}) = 2$</strong> (completely space-filling boundary).</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Automated Smooth Cinematic Zooming Mandelbrot Engine -->
+                <div class="visual-card" style="padding: 0;">
+                    <div class="simulator-box">
+                        <canvas id="mandelbrotCanvas"></canvas>
+                        <div class="canvas-hud" id="fractalHud">Auto-Zoom: Active (Seahorse Valley)</div>
+                        <div class="canvas-controls-bar">
+                            <button class="tool-btn active" id="autoZoomToggleBtn" onclick="toggleAutoZoom()">Auto-Zoom: ON</button>
+                            <button class="tool-btn" onclick="cyclePalette()">Palette</button>
+                            <button class="tool-btn" onclick="zoomInManual()">Zoom (+)</button>
+                            <button class="tool-btn" onclick="zoomOutManual()">Zoom (-)</button>
+                            <button class="tool-btn" onclick="resetCanvas()">Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SLIDE 7: APPLICATIONS ================= -->
+        <section class="slide" id="slide-7">
+            <div class="slide-header">
+                <span class="slide-meta">ENGINEERING IMPACT</span>
+                <h2 class="slide-title">Applications</h2>
+                <p class="slide-subtitle">How fractal geometry drives modern telecommunications, VFX rendering, and security.</p>
+            </div>
+            
+            <div class="unified-layout">
+                <!-- Left: Unified Text Section -->
+                <div class="unified-card">
+                    <div class="unified-content">
+                        <div class="content-group">
+                            <div class="group-heading">Real-World Engineering Implementations</div>
+                            <div class="point-item"><strong>Fractal Antennas:</strong> Self-similar electromagnetic resonance allows compact, multiband reception across cellular 5G, Wi-Fi, and GPS within a single microchip footprint.</div>
+                            <div class="point-item"><strong>Computer Graphics & VFX:</strong> Procedural fractal algorithms generate photorealistic mountain ranges, clouds, coastlines, and planetary terrain without storing massive 3D geometry meshes.</div>
+                            <div class="point-item"><strong>Chaos Cryptography:</strong> High sensitivity to initial conditions in non-linear dynamical systems provides cryptographically secure pseudo-random number generators (PRNG).</div>
+                            <div class="point-item"><strong>Fractal Image Compression:</strong> Iterated Function Systems (IFS) exploit resolution-independent self-similarity for diagnostic medical imaging.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Animated 4-Quadrant Application Models -->
+                <div class="visual-card">
+                    <svg width="100%" height="100%" viewBox="0 0 320 340">
+                        <defs>
+                            <linearGradient id="terrainLaser" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="var(--indigo)" stop-opacity="0"/>
+                                <stop offset="50%" stop-color="#818cf8" stop-opacity="0.95"/>
+                                <stop offset="100%" stop-color="var(--indigo)" stop-opacity="0"/>
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Quad 1: Animated 5G Antenna RF Model -->
+                        <rect x="15" y="15" width="135" height="145" rx="10" fill="rgba(56,189,248,0.08)" stroke="var(--cyan)" stroke-width="1.2"/>
+                        <!-- Antenna RF Pulsing Wave Rings -->
+                        <circle cx="82" cy="65" r="10" fill="none" stroke="var(--cyan)" stroke-width="1.5" class="anim-rf-wave-1"/>
+                        <circle cx="82" cy="65" r="10" fill="none" stroke="var(--cyan)" stroke-width="1.5" class="anim-rf-wave-2"/>
+                        <circle cx="82" cy="65" r="10" fill="none" stroke="var(--cyan)" stroke-width="1.5" class="anim-rf-wave-3"/>
+                        <!-- Sierpinski Fractal Triangle Antenna -->
+                        <polygon points="82,30 45,95 120,95" fill="none" stroke="var(--cyan)" stroke-width="1.8"/>
+                        <polygon points="63,62 101,62 82,95" fill="rgba(56,189,248,0.3)" stroke="var(--cyan)" stroke-width="1.2"/>
+                        <circle cx="82" cy="30" r="3.5" fill="#ffffff"/>
+                        <text x="35" y="124" fill="var(--cyan)" font-size="11" font-weight="bold" font-family="monospace">5G ANTENNA</text>
+                        <text x="35" y="142" fill="var(--text-muted)" font-size="9.5" font-family="sans-serif">Multiband RF Waves</text>
+
+                        <!-- Quad 2: Animated CGI Mountain Model with Scan Ray -->
+                        <rect x="170" y="15" width="135" height="145" rx="10" fill="rgba(99,102,241,0.08)" stroke="var(--indigo)" stroke-width="1.2"/>
+                        <path d="M 180,95 L 205,45 L 235,75 L 260,35 L 295,95 Z" fill="rgba(99,102,241,0.25)" stroke="var(--indigo)" stroke-width="1.5"/>
+                        <line x1="205" y1="45" x2="235" y2="75" stroke="var(--indigo)" stroke-width="1"/>
+                        <line x1="235" y1="75" x2="260" y2="35" stroke="var(--indigo)" stroke-width="1"/>
+                        <!-- Scanning Laser Beam with Trail -->
+                        <g class="anim-terrain-scan">
+                            <line x1="180" y1="28" x2="180" y2="98" stroke="url(#terrainLaser)" stroke-width="2.5"/>
+                        </g>
+                        <text x="190" y="124" fill="var(--indigo)" font-size="11" font-weight="bold" font-family="monospace">CGI / VFX</text>
+                        <text x="190" y="142" fill="var(--text-muted)" font-size="9.5" font-family="sans-serif">Terrain Mesh Shader</text>
+
+                        <!-- Quad 3: Animated Chaos Orbit Particle Stream -->
+                        <rect x="15" y="180" width="135" height="145" rx="10" fill="rgba(245,158,11,0.08)" stroke="var(--amber)" stroke-width="1.2"/>
+                        <rect x="30" y="200" width="105" height="65" rx="6" fill="rgba(245,158,11,0.12)" stroke="var(--amber)" stroke-width="1"/>
+                        <!-- Chaotic Phase Orbit Loops -->
+                        <path d="M 45,235 C 45,205 85,205 85,235 C 85,260 120,260 120,235 C 120,210 85,210 85,235 Z" fill="none" stroke="rgba(245,158,11,0.4)" stroke-width="1.5" stroke-dasharray="3 3"/>
+                        <circle cx="45" cy="235" r="4.5" fill="var(--amber)" class="anim-chaos-dot"/>
+                        <text x="30" y="290" fill="var(--amber)" font-size="11" font-weight="bold" font-family="monospace">CHAOS PRNG</text>
+                        <text x="30" y="307" fill="var(--text-muted)" font-size="9.5" font-family="sans-serif">Data Encryption</text>
+
+                        <!-- Quad 4: Animated Quadtree Fractal Compression -->
+                        <rect x="170" y="180" width="135" height="145" rx="10" fill="rgba(16,185,129,0.08)" stroke="var(--emerald)" stroke-width="1.2"/>
+                        <rect x="190" y="198" width="95" height="68" fill="none" stroke="var(--emerald)" stroke-width="1.2"/>
+                        <line x1="237" y1="198" x2="237" y2="266" stroke="var(--emerald)" stroke-width="1"/>
+                        <line x1="190" y1="232" x2="285" y2="232" stroke="var(--emerald)" stroke-width="1"/>
+                        <!-- Recursive Sub-block with Scan Pulse -->
+                        <rect class="anim-quadtree-scan" x="190" y="198" width="47" height="34" fill="rgba(16,185,129,0.3)" stroke="var(--emerald)" stroke-width="1.5"/>
+                        <line x1="213" y1="198" x2="213" y2="232" stroke="rgba(16,185,129,0.6)" stroke-width="0.8"/>
+                        <line x1="190" y1="215" x2="237" y2="215" stroke="rgba(16,185,129,0.6)" stroke-width="0.8"/>
+                        <text x="180" y="290" fill="var(--emerald)" font-size="11" font-weight="bold" font-family="monospace">COMPRESSION</text>
+                        <text x="180" y="307" fill="var(--text-muted)" font-size="9.5" font-family="sans-serif">IFS Subdivisions</text>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SLIDE 8: RESEARCH & FUTURE WORK ================= -->
+        <section class="slide" id="slide-8">
+            <div class="slide-header">
+                <span class="slide-meta">ACADEMIC LITERATURE</span>
+                <h2 class="slide-title">Related Research Paper and Future Work</h2>
+                <p class="slide-subtitle">Seminal publications, perturbation deep-zoom algorithms, and open conjectures.</p>
+            </div>
+            
+            <div class="unified-layout">
+                <!-- Left: Unified Text Section -->
+                <div class="unified-card">
+                    <div class="unified-content">
+                        <div class="content-group">
+                            <div class="group-heading">Seminal Research Papers</div>
+                            <div class="point-item"><strong>Douady & Hubbard (1985):</strong> <em>"Étude dynamique des polynômes complexes"</em> — Established conformal mappings and proved the set is connected.</div>
+                            <div class="point-item"><strong>M. Shishikura (1998, Annals of Math):</strong> Proved that the Hausdorff dimension of the boundary is strictly 2 ($\dim_H(\partial \mathcal{M}) = 2$).</div>
+                            <div class="point-item"><strong>K.I. Martin (2013):</strong> <em>"Perturbation Theory for Deep Mandelbrot Zooming"</em> — Enabled zooms past $10^{1000}\times$ depth in real-time by calculating one reference orbit and perturbing nearby pixel offsets.</div>
+                        </div>
+
+                        <div class="content-group">
+                            <div class="group-heading">Future Work & Open Conjectures</div>
+                            <div class="point-item"><strong>The MLC Conjecture:</strong> <em>"Is the Mandelbrot Set Locally Connected?"</em> — One of the foremost unresolved problems in modern complex dynamics.</div>
+                            <div class="point-item"><strong>WebGPU & Neural Acceleration:</strong> Real-time 4K 120 FPS ray-marching with neural surrogate PDE solvers.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Animated Perturbation & MLC Model -->
+                <div class="visual-card">
+                    <svg width="100%" height="100%" viewBox="0 0 320 340">
+                        <!-- Perturbation Vector Diagram Box -->
+                        <rect x="20" y="20" width="280" height="140" rx="8" fill="rgba(14,21,38,0.8)" stroke="var(--cyan)" stroke-width="1.2"/>
+                        <text x="35" y="42" fill="var(--cyan)" font-size="11" font-weight="bold" font-family="monospace">K.I. MARTIN PERTURBATION</text>
+                        
+                        <!-- Reference Orbit Line -->
+                        <line x1="40" y1="85" x2="280" y2="85" stroke="var(--cyan)" stroke-width="2.5"/>
+                        <circle cx="70" cy="85" r="5" fill="var(--cyan)"/>
+                        <circle cx="160" cy="85" r="5" fill="var(--cyan)"/>
+                        <circle cx="250" cy="85" r="5" fill="var(--cyan)"/>
+                        <text x="45" y="110" fill="var(--cyan)" font-size="10" font-family="monospace">Z_0 (Precise)</text>
+                        <text x="140" y="110" fill="var(--cyan)" font-size="10" font-family="monospace">Z_n (Reference)</text>
+
+                        <!-- Animated Perturbation Offset Vector -->
+                        <g class="anim-perturb-vector">
+                            <line x1="160" y1="85" x2="205" y2="50" stroke="var(--amber)" stroke-width="2" stroke-dasharray="3 3"/>
+                            <circle cx="205" cy="50" r="5" fill="var(--amber)"/>
+                            <text x="212" y="55" fill="var(--amber)" font-size="10" font-weight="bold" font-family="monospace">+dz_n (Float64)</text>
+                        </g>
+
+                        <!-- MLC Conjecture Infographic -->
+                        <rect x="20" y="180" width="280" height="140" rx="8" fill="rgba(14,21,38,0.8)" stroke="var(--indigo)" stroke-width="1.2"/>
+                        <text x="35" y="205" fill="var(--indigo)" font-size="11" font-weight="bold" font-family="monospace">THE MLC CONJECTURE</text>
+                        <circle cx="80" cy="260" r="28" fill="none" stroke="var(--indigo)" stroke-width="1.5"/>
+                        <circle cx="150" cy="260" r="18" fill="none" stroke="var(--emerald)" stroke-width="1.5"/>
+                        <circle cx="205" cy="260" r="10" fill="none" stroke="var(--cyan)" stroke-width="1.5"/>
+                        <line x1="50" y1="260" x2="240" y2="260" stroke="rgba(148,163,184,0.3)"/>
+                        <text x="35" y="305" fill="var(--text-muted)" font-size="10" font-family="sans-serif">Locally Connected? Open Topological Problem</text>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SLIDE 9: CONCLUSION ================= -->
+        <section class="slide" id="slide-9">
+            <div class="slide-header">
+                <span class="slide-meta">SYNTHESIS</span>
+                <h2 class="slide-title">Conclusion</h2>
+                <p class="slide-subtitle">Summary of findings and final core takeaways.</p>
+            </div>
+            
+            <div class="unified-layout">
+                <!-- Left: Unified Text Section -->
+                <div class="unified-card">
+                    <div class="unified-content">
+                        <div class="content-group">
+                            <div class="group-heading">Core Presentation Takeaways</div>
+                            <div class="point-item"><strong>1. Algorithmic Simplicity:</strong> A single deterministic recurrence rule ($z_{n+1} = z_n^2 + c$) generates infinite non-repeating geometric complexity from simple initial conditions.</div>
+                            <div class="point-item"><strong>2. Mathematical Bridge:</strong> Unifies complex analysis, non-linear dynamical systems, GPU parallel computing, and topology into a single visual model.</div>
+                            <div class="point-item"><strong>3. Practical Power:</strong> Directly underpins modern multiband 5G antennas, procedural CGI video game worlds, data compression, and cryptographic security.</div>
+                        </div>
+
+                        <div class="math-hero-box" style="margin-top: 14px; font-weight: 800;">
+                            "Bottomless wonders spring from simple rules, repeated without end." — Benoît Mandelbrot
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Animated Synthesis Triangle Model -->
+                <div class="visual-card">
+                    <svg width="100%" height="100%" viewBox="0 0 320 340">
+                        <defs>
+                            <linearGradient id="synthesisGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#38bdf8"/>
+                                <stop offset="50%" stop-color="#6366f1"/>
+                                <stop offset="100%" stop-color="#10b981"/>
+                            </linearGradient>
+                            <filter id="synthGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="3.5" result="blur"/>
+                                <feMerge>
+                                    <feMergeNode in="blur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Base Connecting Triangular Circuit Track -->
+                        <polygon points="160,45 45,255 275,255" fill="none" stroke="rgba(148,163,184,0.18)" stroke-width="3.5"/>
+                        
+                        <!-- Animated Flowing Energy Laser Beam -->
+                        <polygon points="160,45 45,255 275,255" fill="none" stroke="url(#synthesisGrad)" stroke-width="3" class="anim-synthesis-stream"/>
+
+                        <!-- Center Radiation Spokes -->
+                        <line x1="160" y1="45" x2="160" y2="175" stroke="rgba(56,189,248,0.3)" stroke-width="1.5" stroke-dasharray="3 3"/>
+                        <line x1="45" y1="255" x2="160" y2="175" stroke="rgba(99,102,241,0.3)" stroke-width="1.5" stroke-dasharray="3 3"/>
+                        <line x1="275" y1="255" x2="160" y2="175" stroke="rgba(16,185,129,0.3)" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+                        <!-- Pillar 1: Top (Simplicity) -->
+                        <g>
+                            <circle class="anim-pillar-glow-1" cx="160" cy="45" r="28" fill="rgba(56,189,248,0.2)" stroke="var(--cyan)" stroke-width="2"/>
+                            <circle cx="160" cy="45" r="16" fill="var(--bg-surface-elevated)" stroke="var(--cyan)" stroke-width="1.5"/>
+                            <text x="151" y="50" fill="var(--cyan)" font-size="13" font-weight="bold" font-family="monospace">01</text>
+                            <text x="118" y="88" fill="var(--cyan)" font-size="11" font-weight="bold" font-family="monospace">SIMPLICITY</text>
+                        </g>
+
+                        <!-- Pillar 2: Bottom Left (Mathematical Bridge) -->
+                        <g>
+                            <circle class="anim-pillar-glow-2" cx="45" cy="255" r="28" fill="rgba(99,102,241,0.2)" stroke="var(--indigo)" stroke-width="2"/>
+                            <circle cx="45" cy="255" r="16" fill="var(--bg-surface-elevated)" stroke="var(--indigo)" stroke-width="1.5"/>
+                            <text x="36" y="260" fill="var(--indigo)" font-size="13" font-weight="bold" font-family="monospace">02</text>
+                            <text x="10" y="298" fill="var(--indigo)" font-size="11" font-weight="bold" font-family="monospace">MATH BRIDGE</text>
+                        </g>
+
+                        <!-- Pillar 3: Bottom Right (Engineering Power) -->
+                        <g>
+                            <circle class="anim-pillar-glow-3" cx="275" cy="255" r="28" fill="rgba(16,185,129,0.2)" stroke="var(--emerald)" stroke-width="2"/>
+                            <circle cx="275" cy="255" r="16" fill="var(--bg-surface-elevated)" stroke="var(--emerald)" stroke-width="1.5"/>
+                            <text x="266" y="260" fill="var(--emerald)" font-size="13" font-weight="bold" font-family="monospace">03</text>
+                            <text x="235" y="298" fill="var(--emerald)" font-size="11" font-weight="bold" font-family="monospace">5G & CGI</text>
+                        </g>
+
+                        <!-- Central Nucleus Reactor Core -->
+                        <g class="anim-nucleus-glow">
+                            <circle cx="160" cy="175" r="36" fill="var(--bg-surface-elevated)" stroke="var(--cyan)" stroke-width="2" filter="url(#synthGlow)"/>
+                            <circle cx="160" cy="175" r="30" fill="rgba(56,189,248,0.15)"/>
+                            <text x="120" y="172" fill="var(--text-title)" font-size="11" font-weight="bold" font-family="monospace">MANDELBROT</text>
+                            <text x="136" y="190" fill="var(--cyan)" font-size="11.5" font-weight="bold" font-family="monospace">z² + c</text>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SLIDE 10: Q&A & CLOSING ================= -->
+        <section class="slide" id="slide-10">
+            <div style="text-align: center; max-width: 980px; margin: auto; display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                
+                <div style="display: inline-flex; justify-content: center; margin-bottom: 12px;">
+                    <span class="slide-meta">PRESENTATION CONCLUDED</span>
+                </div>
+                
+                <h1 class="hero-title" style="font-size: clamp(40px, 5vw, 64px);">
+                    Thank You
+                </h1>
+
+                <p style="font-size: 18px; color: var(--text-muted); margin-bottom: 20px; font-weight: 500;">
+                    Questions & Discussion
+                </p>
+
+                <div class="unified-card" style="margin-bottom: 20px; padding: 20px; text-align: center;">
+                    <div style="font-size: 12.5px; font-weight: 800; color: var(--cyan); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px;">
+                        Project Team Members
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; font-family: var(--font-mono); font-size: 13.5px; color: var(--text-body);">
+                        <span style="background: var(--bg-surface-elevated); padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border-glass);"><strong>Samiul Haque Seam</strong> (2023200000160)</span>
+                        <span style="background: var(--bg-surface-elevated); padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border-glass);"><strong>Md Shahadat Hossan</strong> (2023200000599)</span>
+                        <span style="background: var(--bg-surface-elevated); padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border-glass);"><strong>Azim Pial</strong> (2023200000601)</span>
+                        <span style="background: var(--bg-surface-elevated); padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border-glass);"><strong>Wahid Imtiaz Arnob</strong> (2023200000616)</span>
+                        <span style="background: var(--bg-surface-elevated); padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border-glass);"><strong>Naima Sultana</strong> (2023200000636)</span>
+                    </div>
+                    <div style="margin-top: 14px; font-size: 13px; color: var(--text-muted); font-weight: 600;">
+                        <strong>Southeast University</strong> | Department of Computer Science & Engineering
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: center; gap: 14px;">
+                    <button class="btn-action" onclick="goToSlide(0)" style="font-size: 13.5px; padding: 9px 20px;">Restart Presentation</button>
+                    <button class="btn-action" onclick="goToSlide(5)" style="font-size: 13.5px; padding: 9px 20px;">Algorithm & Simulation</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Overview Slide Jumper Modal -->
+    <div class="modal-overlay" id="overviewModal" onclick="if(event.target === this) toggleOverview()">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-family: var(--font-heading); font-size: 20px; color: var(--text-title); font-weight: 900;">Presentation Slides</h3>
+                <button class="btn-action" onclick="toggleOverview()">Close</button>
+            </div>
+            <div class="modal-grid" id="modalGrid">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Controls -->
+    <footer>
+        <div class="slide-progress-line">
+            <div class="slide-progress-fill" id="progressBar"></div>
+        </div>
+        
+        <div class="slide-indicator">
+            Slide <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">10</span>
+        </div>
+
+        <div class="nav-controls">
+            <button class="icon-control" onclick="prevSlide()" title="Previous Slide (Left Arrow)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="icon-control" onclick="nextSlide()" title="Next Slide (Right Arrow or Space)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Interactive Canvas & Cinematic Auto-Zoom Script -->
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let currentSlideIndex = 0;
+
+        function updateSlideUI() {
+            slides.forEach((slide, idx) => {
+                slide.classList.remove('active', 'prev');
+                if (idx === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else if (idx < currentSlideIndex) {
+                    slide.classList.add('prev');
+                }
+            });
+
+            document.getElementById('currentSlideNum').innerText = currentSlideIndex + 1;
+            document.getElementById('totalSlidesNum').innerText = totalSlides;
+            
+            const progress = ((currentSlideIndex + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+
+            // Lifecycle hooks for interactive canvas simulations
+            if (currentSlideIndex === 3) {
+                renderBoundedDisk();
+                startDiskSimulation();
+            } else {
+                stopDiskSimulation();
+            }
+
+            if (currentSlideIndex === 5) {
+                renderMandelbrot();
+                startAutoZoom();
+            } else {
+                stopAutoZoom();
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlideIndex < totalSlides - 1) {
+                currentSlideIndex++;
+                updateSlideUI();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                currentSlideIndex--;
+                updateSlideUI();
+            }
+        }
+
+        function goToSlide(index) {
+            if (index >= 0 && index < totalSlides) {
+                currentSlideIndex = index;
+                updateSlideUI();
+                const modal = document.getElementById('overviewModal');
+                if (modal.classList.contains('open')) toggleOverview();
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            if (currentSlideIndex === 3) renderBoundedDisk();
+            if (currentSlideIndex === 5) renderMandelbrot();
+        }
+
+        function toggleOverview() {
+            const modal = document.getElementById('overviewModal');
+            modal.classList.toggle('open');
+            if (modal.classList.contains('open')) {
+                const grid = document.getElementById('modalGrid');
+                grid.innerHTML = '';
+                slides.forEach((slide, idx) => {
+                    const heading = slide.querySelector('.slide-title') ? slide.querySelector('.slide-title').innerText : `Slide ${idx + 1}`;
+                    const meta = slide.querySelector('.slide-meta') ? slide.querySelector('.slide-meta').innerText : 'SECTION';
+                    const card = document.createElement('div');
+                    card.className = 'modal-card';
+                    if (idx === currentSlideIndex) card.style.borderColor = 'var(--cyan)';
+                    card.innerHTML = `
+                        <div style="font-size: 11px; font-family: var(--font-mono); color: var(--cyan); font-weight: 800;">${meta}</div>
+                        <div style="font-weight: 800; font-size: 13.5px; color: var(--text-title); margin-top: 4px;">${idx + 1}. ${heading}</div>
+                    `;
+                    card.onclick = () => goToSlide(idx);
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                goToSlide(0);
+            } else if (e.key === 'End') {
+                goToSlide(totalSlides - 1);
+            } else if (e.key.toLowerCase() === 'f') {
+                toggleFullscreen();
+            } else if (e.key.toLowerCase() === 'o') {
+                toggleOverview();
+            }
+        });
+
+        // ================= MANDELBROT REAL-TIME ENGINE WITH AUTO-ZOOM =================
+        const mCanvas = document.getElementById('mandelbrotCanvas');
+        const mCtx = mCanvas ? mCanvas.getContext('2d') : null;
+
+        let mState = {
+            centerX: -0.75,
+            centerY: 0.0,
+            zoom: 1.0,
+            maxIter: 100,
+            palette: 0
+        };
+
+        let isAutoZooming = true;
+        let autoZoomAnimationId = null;
+        let autoZoomStartTime = null;
+
+        // Landmark target for cinematic deep zoom (Seahorse Valley)
+        const targetX = -0.7436438870371587;
+        const targetY = 0.1318259042053119;
+        const baseCenterX = -0.75;
+        const baseCenterY = 0.0;
+
+        const academicPalettes = [
+            { name: "Viridis", fn: (t) => [Math.floor(68 + 180 * t), Math.floor(1 + 220 * t), Math.floor(84 + 100 * Math.sin(t * 3.14))] },
+            { name: "Electric Cyan", fn: (t) => [Math.floor(20 + 60 * t), Math.floor(50 + 130 * t), Math.floor(120 + 135 * t)] },
+            { name: "Thermal Fire", fn: (t) => [Math.min(255, t * 500), Math.max(0, Math.min(255, t * 500 - 150)), Math.max(0, Math.min(255, t * 500 - 300))] }
+        ];
+
+        function resizeMCanvas() {
+            if (!mCanvas) return;
+            const rect = mCanvas.getBoundingClientRect();
+            mCanvas.width = Math.min(720, Math.floor(rect.width));
+            mCanvas.height = Math.min(460, Math.floor(rect.height));
+        }
+
+        function renderMandelbrot() {
+            if (!mCanvas || !mCtx) return;
+            resizeMCanvas();
+            const width = mCanvas.width;
+            const height = mCanvas.height;
+            if (width === 0 || height === 0) return;
+
+            const imgData = mCtx.createImageData(width, height);
+            const data = imgData.data;
+
+            const aspect = width / height;
+            const rangeY = 2.4 / mState.zoom;
+            const rangeX = rangeY * aspect;
+            const minX = mState.centerX - rangeX / 2;
+            const maxY = mState.centerY + rangeY / 2;
+
+            const maxIter = mState.maxIter;
+            const palFn = academicPalettes[mState.palette].fn;
+
+            for (let py = 0; py < height; py++) {
+                const b = maxY - (py / height) * rangeY;
+                const rowOffset = py * width * 4;
+
+                for (let px = 0; px < width; px++) {
+                    const a = minX + (px / width) * rangeX;
+                    let x = 0.0, y = 0.0, iter = 0, x2 = 0.0, y2 = 0.0;
+
+                    while (x2 + y2 <= 4.0 && iter < maxIter) {
+                        y = 2.0 * x * y + b;
+                        x = x2 - y2 + a;
+                        x2 = x * x;
+                        y2 = y * y;
+                        iter++;
+                    }
+
+                    const pixelIdx = rowOffset + px * 4;
+                    if (iter === maxIter) {
+                        data[pixelIdx] = 5;
+                        data[pixelIdx + 1] = 8;
+                        data[pixelIdx + 2] = 17;
+                        data[pixelIdx + 3] = 255;
+                    } else {
+                        const log_zn = Math.log(x2 + y2) / 2;
+                        const nu = Math.log(log_zn / Math.LN2) / Math.LN2;
+                        const smoothIter = iter + 1 - nu;
+                        const t = (smoothIter % 32) / 32;
+                        const rgb = palFn(t);
+                        data[pixelIdx] = rgb[0];
+                        data[pixelIdx + 1] = rgb[1];
+                        data[pixelIdx + 2] = rgb[2];
+                        data[pixelIdx + 3] = 255;
+                    }
+                }
+            }
+
+            mCtx.putImageData(imgData, 0, 0);
+
+            const hud = document.getElementById('fractalHud');
+            if (hud) {
+                hud.innerText = isAutoZooming ? 
+                    `Cinematic Auto-Zoom: ${mState.zoom.toFixed(1)}x | Iter: ${mState.maxIter}` : 
+                    `Zoom: ${mState.zoom.toFixed(1)}x | Iter: ${mState.maxIter}`;
+            }
+        }
+
+        // ================= CINEMATIC AUTO-ZOOM LOOP =================
+        function autoZoomStep(timestamp) {
+            if (!isAutoZooming || currentSlideIndex !== 5) return;
+            if (!autoZoomStartTime) autoZoomStartTime = timestamp;
+
+            const elapsed = (timestamp - autoZoomStartTime) / 1000; // seconds
+            
+            // Smooth Sine-Wave Easing for Infinite Zoom-In & Zoom-Out
+            const wave = (Math.sin(elapsed * 0.45 - Math.PI / 2) + 1) / 2; // 0 to 1
+            const easedWave = wave * wave * (3 - 2 * wave); // Smoothstep curve
+
+            // Zoom Depth ranges smoothly from 1.0x to 350.0x
+            mState.zoom = Math.pow(350, easedWave);
+            
+            // Smoothly interpolate center coordinate into Seahorse Valley
+            mState.centerX = baseCenterX + (targetX - baseCenterX) * easedWave;
+            mState.centerY = baseCenterY + (targetY - baseCenterY) * easedWave;
+            
+            // Dynamically scale max iterations with zoom depth
+            mState.maxIter = Math.min(220, Math.floor(75 + easedWave * 130));
+
+            renderMandelbrot();
+            autoZoomAnimationId = requestAnimationFrame(autoZoomStep);
+        }
+
+        function startAutoZoom() {
+            if (!isAutoZooming) return;
+            if (autoZoomAnimationId) cancelAnimationFrame(autoZoomAnimationId);
+            autoZoomStartTime = null;
+            autoZoomAnimationId = requestAnimationFrame(autoZoomStep);
+        }
+
+        function stopAutoZoom() {
+            if (autoZoomAnimationId) {
+                cancelAnimationFrame(autoZoomAnimationId);
+                autoZoomAnimationId = null;
+            }
+        }
+
+        function toggleAutoZoom() {
+            isAutoZooming = !isAutoZooming;
+            const btn = document.getElementById('autoZoomToggleBtn');
+            if (btn) {
+                btn.innerText = isAutoZooming ? 'Auto-Zoom: ON' : 'Auto-Zoom: PAUSED';
+                btn.classList.toggle('active', isAutoZooming);
+            }
+            if (isAutoZooming) {
+                startAutoZoom();
+            } else {
+                stopAutoZoom();
+                renderMandelbrot();
+            }
+        }
+
+        function zoomInManual() {
+            isAutoZooming = false;
+            stopAutoZoom();
+            updateAutoZoomBtnUI();
+            mState.zoom *= 1.8;
+            mState.maxIter = Math.min(300, Math.floor(75 + Math.log10(mState.zoom) * 80));
+            renderMandelbrot();
+        }
+
+        function zoomOutManual() {
+            isAutoZooming = false;
+            stopAutoZoom();
+            updateAutoZoomBtnUI();
+            mState.zoom = Math.max(0.5, mState.zoom / 1.8);
+            renderMandelbrot();
+        }
+
+        function resetCanvas() {
+            isAutoZooming = false;
+            stopAutoZoom();
+            updateAutoZoomBtnUI();
+            mState.centerX = -0.75;
+            mState.centerY = 0.0;
+            mState.zoom = 1.0;
+            mState.maxIter = 100;
+            renderMandelbrot();
+        }
+
+        function updateAutoZoomBtnUI() {
+            const btn = document.getElementById('autoZoomToggleBtn');
+            if (btn) {
+                btn.innerText = 'Auto-Zoom: PAUSED';
+                btn.classList.remove('active');
+            }
+        }
+
+        function cyclePalette() {
+            mState.palette = (mState.palette + 1) % academicPalettes.length;
+            renderMandelbrot();
+        }
+
+        function applyPreset(preset) {
+            isAutoZooming = false;
+            stopAutoZoom();
+            updateAutoZoomBtnUI();
+            if (preset === 'default') {
+                mState.centerX = -0.75; mState.centerY = 0.0; mState.zoom = 1.0; mState.maxIter = 100;
+            } else if (preset === 'seahorse') {
+                mState.centerX = -0.7436438870371587; mState.centerY = 0.1318259042053119; mState.zoom = 280.0; mState.maxIter = 180;
+            } else if (preset === 'elephant') {
+                mState.centerX = 0.275; mState.centerY = 0.0; mState.zoom = 30.0; mState.maxIter = 140;
+            }
+            renderMandelbrot();
+        }
+
+        // Drag to Pan
+        let isDragging = false;
+        let dragStartX = 0, dragStartY = 0;
+
+        if (mCanvas) {
+            mCanvas.addEventListener('mousedown', (e) => {
+                isAutoZooming = false;
+                stopAutoZoom();
+                updateAutoZoomBtnUI();
+                isDragging = true;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+            });
+
+            window.addEventListener('mouseup', () => isDragging = false);
+
+            mCanvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+
+                const aspect = mCanvas.width / mCanvas.height;
+                const rangeY = 2.4 / mState.zoom;
+                const rangeX = rangeY * aspect;
+
+                mState.centerX -= (dx / mCanvas.width) * rangeX;
+                mState.centerY += (dy / mCanvas.height) * rangeY;
+                renderMandelbrot();
+            });
+
+            mCanvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                isAutoZooming = false;
+                stopAutoZoom();
+                updateAutoZoomBtnUI();
+                const zoomFactor = e.deltaY < 0 ? 1.3 : 0.77;
+                mState.zoom *= zoomFactor;
+                mState.maxIter = Math.min(400, Math.floor(70 + Math.log10(mState.zoom) * 60));
+                renderMandelbrot();
+            }, { passive: false });
+        }
+
+        // ================= BOUNDED DISK COMPLEX ORBIT SIMULATOR =================
+        const diskCanvas = document.getElementById('boundedDiskCanvas');
+        const diskCtx = diskCanvas ? diskCanvas.getContext('2d') : null;
+
+        let diskState = {
+            ca: -0.75,
+            cb: 0.1,
+            isSweeping: true,
+            sweepAngle: 0,
+            animationId: null,
+            isDragging: false
+        };
+
+        function resizeDiskCanvas() {
+            if (!diskCanvas) return;
+            const rect = diskCanvas.getBoundingClientRect();
+            diskCanvas.width = Math.min(720, Math.floor(rect.width));
+            diskCanvas.height = Math.min(460, Math.floor(rect.height));
+        }
+
+        function complexToScreen(re, im, width, height, scale, originX, originY) {
+            return {
+                x: originX + re * scale,
+                y: originY - im * scale
+            };
+        }
+
+        function screenToComplex(sx, sy, scale, originX, originY) {
+            return {
+                re: (sx - originX) / scale,
+                im: (originY - sy) / scale
+            };
+        }
+
+        function renderBoundedDisk() {
+            if (!diskCanvas || !diskCtx) return;
+            resizeDiskCanvas();
+            const width = diskCanvas.width;
+            const height = diskCanvas.height;
+            if (width === 0 || height === 0) return;
+
+            const isLight = document.body.classList.contains('light-theme');
+            const bgColor = isLight ? '#f8fafc' : '#050811';
+            const gridColor = isLight ? 'rgba(148, 163, 184, 0.25)' : 'rgba(148, 163, 184, 0.12)';
+            const axisColor = isLight ? 'rgba(15, 23, 42, 0.7)' : 'rgba(226, 232, 240, 0.6)';
+            const textColor = isLight ? '#0f172a' : '#e2e8f0';
+
+            diskCtx.fillStyle = bgColor;
+            diskCtx.fillRect(0, 0, width, height);
+
+            const originX = width / 2;
+            const originY = height / 2;
+            const scale = Math.min(width, height) / 5.2; // Scale so R=2 fits comfortably
+
+            // Grid Lines
+            diskCtx.lineWidth = 1;
+            diskCtx.strokeStyle = gridColor;
+            for (let r = -2; r <= 2; r += 0.5) {
+                if (Math.abs(r) < 0.01) continue;
+                // Vertical grid lines
+                const p1 = complexToScreen(r, -2.6, width, height, scale, originX, originY);
+                const p2 = complexToScreen(r, 2.6, width, height, scale, originX, originY);
+                diskCtx.beginPath();
+                diskCtx.moveTo(p1.x, p1.y);
+                diskCtx.lineTo(p2.x, p2.y);
+                diskCtx.stroke();
+
+                // Horizontal grid lines
+                const h1 = complexToScreen(-2.6, r, width, height, scale, originX, originY);
+                const h2 = complexToScreen(2.6, r, width, height, scale, originX, originY);
+                diskCtx.beginPath();
+                diskCtx.moveTo(h1.x, h1.y);
+                diskCtx.lineTo(h2.x, h2.y);
+                diskCtx.stroke();
+            }
+
+            // Escape Disk R = 2.0 (Shaded Interior)
+            diskCtx.beginPath();
+            diskCtx.arc(originX, originY, 2.0 * scale, 0, Math.PI * 2);
+            diskCtx.fillStyle = isLight ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.06)';
+            diskCtx.fill();
+            diskCtx.lineWidth = 2;
+            diskCtx.strokeStyle = 'rgba(244, 63, 94, 0.55)';
+            diskCtx.setLineDash([6, 6]);
+            diskCtx.stroke();
+            diskCtx.setLineDash([]);
+
+            // Unit Circle R = 1.0
+            diskCtx.beginPath();
+            diskCtx.arc(originX, originY, 1.0 * scale, 0, Math.PI * 2);
+            diskCtx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+            diskCtx.setLineDash([3, 5]);
+            diskCtx.stroke();
+            diskCtx.setLineDash([]);
+
+            // Ghost Mandelbrot Reference Outline
+            diskCtx.beginPath();
+            for (let theta = 0; theta <= Math.PI * 2; theta += 0.04) {
+                // Cardioid: r = 0.5*(1 - cos(theta)) centered at (0.25, 0)
+                const cr = 0.5 * (1 - Math.cos(theta));
+                const cx = cr * Math.cos(theta) + 0.25;
+                const cy = cr * Math.sin(theta);
+                const pt = complexToScreen(-cx, cy, width, height, scale, originX, originY);
+                if (theta === 0) diskCtx.moveTo(pt.x, pt.y);
+                else diskCtx.lineTo(pt.x, pt.y);
+            }
+            diskCtx.closePath();
+            // Period-2 Bulb at (-1, 0) with radius 0.25
+            const p2 = complexToScreen(-1, 0, width, height, scale, originX, originY);
+            diskCtx.arc(p2.x, p2.y, 0.25 * scale, 0, Math.PI * 2);
+            diskCtx.fillStyle = isLight ? 'rgba(56, 189, 248, 0.12)' : 'rgba(56, 189, 248, 0.1)';
+            diskCtx.fill();
+            diskCtx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+            diskCtx.lineWidth = 1.5;
+            diskCtx.stroke();
+
+            // Real and Imaginary Axes
+            diskCtx.lineWidth = 1.8;
+            diskCtx.strokeStyle = axisColor;
+            diskCtx.beginPath();
+            diskCtx.moveTo(0, originY);
+            diskCtx.lineTo(width, originY);
+            diskCtx.moveTo(originX, 0);
+            diskCtx.lineTo(originX, height);
+            diskCtx.stroke();
+
+            // Axis labels & R=2 labels
+            diskCtx.fillStyle = textColor;
+            diskCtx.font = 'bold 11.5px monospace';
+            diskCtx.fillText('Re(a)', width - 42, originY - 8);
+            diskCtx.fillText('Im(b)', originX + 8, 18);
+            diskCtx.fillStyle = '#f43f5e';
+            diskCtx.fillText('Boundary |z| = 2', originX + 2.0 * scale - 60, originY + 16);
+            diskCtx.fillStyle = 'var(--cyan)';
+            diskCtx.fillText('R = 1.0', originX + 1.0 * scale - 25, originY - 6);
+
+            // Compute Orbit Iterates: z0 = 0, z_{n+1} = z_n^2 + c
+            const a = diskState.ca;
+            const b = diskState.cb;
+            const orbit = [{ x: 0, y: 0 }];
+            let x = 0, y = 0;
+            let escaped = false;
+            let escapeIndex = -1;
+
+            for (let n = 0; n < 30; n++) {
+                const x2 = x * x;
+                const y2 = y * y;
+                if (x2 + y2 > 4.0) {
+                    escaped = true;
+                    escapeIndex = n;
+                    break;
+                }
+                const nextX = x2 - y2 + a;
+                const nextY = 2 * x * y + b;
+                x = nextX;
+                y = nextY;
+                orbit.push({ x: nextX, y: nextY });
+            }
+
+            // Draw Orbit Connection Trail
+            if (orbit.length > 1) {
+                diskCtx.lineWidth = 2.5;
+                for (let i = 0; i < orbit.length - 1; i++) {
+                    const pA = complexToScreen(orbit[i].x, orbit[i].y, width, height, scale, originX, originY);
+                    const pB = complexToScreen(orbit[i + 1].x, orbit[i + 1].y, width, height, scale, originX, originY);
+
+                    diskCtx.beginPath();
+                    diskCtx.moveTo(pA.x, pA.y);
+                    diskCtx.lineTo(pB.x, pB.y);
+                    
+                    const progress = i / orbit.length;
+                    if (escaped && i === orbit.length - 2) {
+                        diskCtx.strokeStyle = '#f43f5e';
+                        diskCtx.lineWidth = 3;
+                    } else if (escaped) {
+                        diskCtx.strokeStyle = `rgba(245, 158, 11, ${0.4 + 0.6 * progress})`;
+                        diskCtx.lineWidth = 2.2;
+                    } else {
+                        diskCtx.strokeStyle = `rgba(56, 189, 248, ${0.4 + 0.6 * progress})`;
+                        diskCtx.lineWidth = 2.2;
+                    }
+                    diskCtx.stroke();
+                }
+
+                // Draw Orbit Nodes
+                orbit.forEach((pt, idx) => {
+                    const sPt = complexToScreen(pt.x, pt.y, width, height, scale, originX, originY);
+                    diskCtx.beginPath();
+                    diskCtx.arc(sPt.x, sPt.y, idx === 0 ? 5 : 4, 0, Math.PI * 2);
+                    
+                    if (idx === 0) {
+                        diskCtx.fillStyle = '#ffffff';
+                    } else if (escaped && idx === orbit.length - 1) {
+                        diskCtx.fillStyle = '#f43f5e';
+                    } else if (escaped) {
+                        diskCtx.fillStyle = '#f59e0b';
+                    } else {
+                        diskCtx.fillStyle = '#10b981';
+                    }
+                    diskCtx.fill();
+
+                    if (idx <= 4 || (escaped && idx === orbit.length - 1)) {
+                        diskCtx.fillStyle = textColor;
+                        diskCtx.font = 'bold 10px monospace';
+                        diskCtx.fillText(`z${idx}`, sPt.x + 6, sPt.y - 4);
+                    }
+                });
+            }
+
+            // Draw Escape Beacon Flare if Escaped
+            if (escaped && orbit.length > 0) {
+                const lastPt = orbit[orbit.length - 1];
+                const sPt = complexToScreen(lastPt.x, lastPt.y, width, height, scale, originX, originY);
+                diskCtx.beginPath();
+                diskCtx.arc(sPt.x, sPt.y, 10, 0, Math.PI * 2);
+                diskCtx.strokeStyle = 'rgba(244, 63, 94, 0.8)';
+                diskCtx.lineWidth = 2;
+                diskCtx.stroke();
+            }
+
+            // Draw Point c Marker and Vector from Origin
+            const scPt = complexToScreen(a, b, width, height, scale, originX, originY);
+            diskCtx.beginPath();
+            diskCtx.moveTo(originX, originY);
+            diskCtx.lineTo(scPt.x, scPt.y);
+            diskCtx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+            diskCtx.lineWidth = 1.5;
+            diskCtx.stroke();
+
+            // Point c Marker
+            diskCtx.beginPath();
+            diskCtx.arc(scPt.x, scPt.y, 7, 0, Math.PI * 2);
+            diskCtx.fillStyle = '#38bdf8';
+            diskCtx.fill();
+            diskCtx.beginPath();
+            diskCtx.arc(scPt.x, scPt.y, 12, 0, Math.PI * 2);
+            diskCtx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+            diskCtx.lineWidth = 1.5;
+            diskCtx.stroke();
+
+            diskCtx.fillStyle = '#38bdf8';
+            diskCtx.font = 'bold 11px monospace';
+            diskCtx.fillText(`c (${a.toFixed(3)}, ${b.toFixed(3)})`, scPt.x + 10, scPt.y + 14);
+
+            // Update HUD
+            const hud = document.getElementById('diskHud');
+            if (hud) {
+                const sign = b >= 0 ? '+' : '-';
+                const statusText = escaped ? 
+                    `<span style="color:#f43f5e; font-weight:800;">ESCAPED RADIUS 2 (Step n=${escapeIndex}) → OUTSIDE SET</span>` : 
+                    `<span style="color:#10b981; font-weight:800;">BOUNDED IN DISK (|z| ≤ 2) → IN MANDELBROT SET</span>`;
+                hud.innerHTML = `c = ${a.toFixed(3)} ${sign} ${Math.abs(b).toFixed(3)}i | ${statusText}`;
+            }
+        }
+
+        function diskAutoSweepStep(timestamp) {
+            if (!diskState.isSweeping || currentSlideIndex !== 3) return;
+            diskState.sweepAngle += 0.015;
+            
+            // Parametric rose sweep visiting both interior cardioid and exterior escape regions
+            const t = diskState.sweepAngle;
+            diskState.ca = -0.75 + 0.65 * Math.cos(t) * Math.sin(t * 0.5);
+            diskState.cb = 0.55 * Math.sin(t * 0.7);
+
+            renderBoundedDisk();
+            diskState.animationId = requestAnimationFrame(diskAutoSweepStep);
+        }
+
+        function startDiskSimulation() {
+            if (!diskState.isSweeping) return;
+            if (diskState.animationId) cancelAnimationFrame(diskState.animationId);
+            diskState.animationId = requestAnimationFrame(diskAutoSweepStep);
+        }
+
+        function stopDiskSimulation() {
+            if (diskState.animationId) {
+                cancelAnimationFrame(diskState.animationId);
+                diskState.animationId = null;
+            }
+        }
+
+        function toggleDiskAnimation() {
+            diskState.isSweeping = !diskState.isSweeping;
+            const btn = document.getElementById('diskAnimToggleBtn');
+            if (btn) {
+                btn.innerText = diskState.isSweeping ? 'Sweep: ON' : 'Sweep: PAUSED';
+                btn.classList.toggle('active', diskState.isSweeping);
+            }
+            if (diskState.isSweeping) {
+                startDiskSimulation();
+            } else {
+                stopDiskSimulation();
+                renderBoundedDisk();
+            }
+        }
+
+        function setDiskPreset(preset) {
+            diskState.isSweeping = false;
+            stopDiskSimulation();
+            const btn = document.getElementById('diskAnimToggleBtn');
+            if (btn) {
+                btn.innerText = 'Sweep: PAUSED';
+                btn.classList.remove('active');
+            }
+
+            if (preset === 'origin') {
+                diskState.ca = 0.0; diskState.cb = 0.0;
+            } else if (preset === 'seahorse') {
+                diskState.ca = -0.75; diskState.cb = 0.1;
+            } else if (preset === 'period3') {
+                diskState.ca = -0.12; diskState.cb = 0.74;
+            } else if (preset === 'escape') {
+                diskState.ca = 0.6; diskState.cb = 0.6;
+            }
+            renderBoundedDisk();
+        }
+
+        if (diskCanvas) {
+            diskCanvas.addEventListener('mousedown', (e) => {
+                diskState.isSweeping = false;
+                stopDiskSimulation();
+                const btn = document.getElementById('diskAnimToggleBtn');
+                if (btn) {
+                    btn.innerText = 'Sweep: PAUSED';
+                    btn.classList.remove('active');
+                }
+                diskState.isDragging = true;
+                handleDiskPointer(e);
+            });
+
+            window.addEventListener('mouseup', () => diskState.isDragging = false);
+
+            diskCanvas.addEventListener('mousemove', (e) => {
+                if (diskState.isDragging) handleDiskPointer(e);
+            });
+
+            function handleDiskPointer(e) {
+                const rect = diskCanvas.getBoundingClientRect();
+                const sx = (e.clientX - rect.left) * (diskCanvas.width / rect.width);
+                const sy = (e.clientY - rect.top) * (diskCanvas.height / rect.height);
+                const originX = diskCanvas.width / 2;
+                const originY = diskCanvas.height / 2;
+                const scale = Math.min(diskCanvas.width, diskCanvas.height) / 5.2;
+
+                const c = screenToComplex(sx, sy, scale, originX, originY);
+                diskState.ca = Math.max(-2.5, Math.min(2.5, c.re));
+                diskState.cb = Math.max(-2.5, Math.min(2.5, c.im));
+                renderBoundedDisk();
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            updateSlideUI();
+            window.addEventListener('resize', () => {
+                if (currentSlideIndex === 3) renderBoundedDisk();
+                if (currentSlideIndex === 5) renderMandelbrot();
+            });
+        });
+    </script>
+</body>
+</html>

@@ -474,7 +474,7 @@ input[type=range]:focus{outline:1px auto var(--accent)}
 @keyframes appFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @keyframes appPulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.06);opacity:1}}
 @keyframes appBlink{0%,100%{opacity:1}50%{opacity:0}}
-@media (prefers-reduced-motion:reduce){.app-card .fig *{animation:none!important}}
+
 
 @media (max-width:1020px){
   .cols.c2,.cols.c2a,.cols.c2b{grid-template-columns:1fr;overflow-y:auto}
@@ -1113,32 +1113,32 @@ input[type=range]:focus{outline:1px auto var(--accent)}
             </div>
           </div>
           <div class="fig">
-            <svg viewBox="0 0 1200 230" fill="none">
-              <rect x="0" y="0" width="1200" height="230" fill="var(--bg-inset)"/>
-              <g stroke="var(--ink-faint)" stroke-opacity=".08">
-                <path d="M0 58h1200M0 116h1200M0 174h1200"/>
-              </g>
-              <rect x="140" y="36" width="920" height="158" rx="8" fill="var(--bg-panel)" stroke="var(--line)"/>
-              <rect x="140" y="36" width="920" height="14" rx="8" fill="var(--accent-dim)"/>
-              <rect x="140" y="48" width="920" height="2" fill="var(--accent-dim)"/>
-              <g stroke="var(--ink-faint)" stroke-opacity=".25">
-                <line x1="164" y1="100" x2="1036" y2="100"/>
-                <line x1="164" y1="150" x2="1036" y2="150"/>
-                <line x1="600" y1="50" x2="600" y2="194"/>
-              </g>
-              <path d="M480 118 a 60 40 0 0 1 120 0 a 60 40 0 0 1 -120 0 Z" stroke="var(--accent)" stroke-width="1.5"/>
-              <circle cx="600" cy="118" r="16" stroke="var(--accent)"/>
-              <circle class="zoomring" cx="600" cy="118" r="44" stroke="var(--accent)" stroke-opacity=".55" stroke-dasharray="5 6"/>
-              <line x1="600" y1="66" x2="600" y2="74" stroke="var(--accent)" stroke-opacity=".6"/>
-              <line x1="600" y1="162" x2="600" y2="170" stroke="var(--accent)" stroke-opacity=".6"/>
-              <line x1="548" y1="118" x2="556" y2="118" stroke="var(--accent)" stroke-opacity=".6"/>
-              <line x1="644" y1="118" x2="652" y2="118" stroke="var(--accent)" stroke-opacity=".6"/>
-              <rect x="300" y="168" width="520" height="6" fill="var(--accent-dim)"/>
-              <rect class="fillbar" x="300" y="168" width="520" height="6" fill="var(--accent)"/>
-              <text x="300" y="154" style="font-family:var(--mono);font-size:13px;fill:var(--accent-ink)">zoom 2e8 ×  depth 512</text>
-              <rect class="cursor" x="452" y="138" width="8" height="15" fill="var(--accent)"/>
-              <text x="880" y="172" style="font-family:var(--mono);font-size:11px;fill:var(--ink-faint)">30 fps · tiles</text>
-            </svg>
+            <svg viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" fill="none">
+                <rect x="0" y="0" width="1200" height="300" fill="var(--bg-inset)"/>
+                <g stroke="var(--ink-faint)" stroke-opacity=".08">
+                  <path d="M0 75h1200M0 150h1200M0 225h1200"/>
+                </g>
+                <rect x="170" y="40" width="860" height="220" rx="10" fill="var(--bg-panel)" stroke="var(--line)"/>
+                <rect x="170" y="40" width="860" height="16" rx="10" fill="var(--accent-dim)"/>
+                <rect x="170" y="54" width="860" height="2" fill="var(--accent-dim)"/>
+                <g stroke="var(--ink-faint)" stroke-opacity=".25">
+                  <line x1="196" y1="120" x2="1004" y2="120"/>
+                  <line x1="196" y1="180" x2="1004" y2="180"/>
+                  <line x1="600" y1="56" x2="600" y2="244"/>
+                </g>
+                <path d="M508 142 a 68 44 0 0 1 136 0 a 68 44 0 0 1 -136 0 Z" stroke="var(--accent)" stroke-width="1.5"/>
+                <circle cx="644" cy="142" r="19" stroke="var(--accent)"/>
+                <circle class="zoomring" cx="644" cy="142" r="52" stroke="var(--accent)" stroke-opacity=".55" stroke-dasharray="5 6"/>
+                <line x1="644" y1="80" x2="644" y2="90" stroke="var(--accent)" stroke-opacity=".6"/>
+                <line x1="644" y1="194" x2="644" y2="204" stroke="var(--accent)" stroke-opacity=".6"/>
+                <line x1="584" y1="142" x2="592" y2="142" stroke="var(--accent)" stroke-opacity=".6"/>
+                <line x1="696" y1="142" x2="704" y2="142" stroke="var(--accent)" stroke-opacity=".6"/>
+                <rect x="330" y="210" width="520" height="6" fill="var(--accent-dim)"/>
+                <rect class="fillbar" x="330" y="210" width="520" height="6" fill="var(--accent)"/>
+                <text x="330" y="196" style="font-family:var(--mono);font-size:13px;fill:var(--accent-ink)">zoom 2e8 &times;  depth 512</text>
+                <rect class="cursor" x="482" y="182" width="9" height="16" fill="var(--accent)"/>
+                <text x="888" y="238" style="font-family:var(--mono);font-size:11px;fill:var(--ink-faint)">30 fps &middot; tiles</text>
+              </svg>
           </div>
         </div>
       </div>
@@ -1696,9 +1696,7 @@ window.addEventListener('resize',()=>{ if(slides[idx].querySelector('#liveCanvas
 
 /* init */
 showSlide(0);
-if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches){
-  document.querySelectorAll('.app-card .fig svg').forEach(s=>{ try{ s.pauseAnimations(); }catch(e){} });
-}
+
 </script>
 </body>
 </html>
