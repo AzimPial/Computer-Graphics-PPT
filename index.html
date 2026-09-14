@@ -137,6 +137,7 @@ body{
   display:inline-flex;align-items:center;gap:7px;transition:color .18s,border-color .18s,background .18s;
 }
 .btn:hover{color:var(--ink);border-color:var(--line-strong);background:var(--accent-dim);border-color:var(--accent)}
+.btn.on{color:var(--accent-ink);border-color:var(--accent);background:var(--accent-dim)}
 .btn svg{flex:none}
 .chip{
   font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;
@@ -499,7 +500,7 @@ input[type=range]:focus{outline:1px auto var(--accent)}
       <b>The Mandelbrot Set</b>
     </div>
     <div class="hact">
-      <button class="btn" id="btnTheme" title="Toggle light / dark (T)">
+      <button class="btn" id="btnTheme" title="Toggle light / dark (T)" onclick="toggleTheme()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></svg>
         Theme
       </button>
@@ -1295,6 +1296,8 @@ const body=document.body;
 function toggleTheme(){
   body.classList.toggle('light');
   localStorage.setItem('mf-theme', body.classList.contains('light')?'light':'dark');
+  const b=document.getElementById('btnTheme');
+  if(b) b.classList.toggle('on', body.classList.contains('light'));
   rerenderActiveCanvases();
 }
 function rerenderActiveCanvases(){
@@ -1302,6 +1305,10 @@ function rerenderActiveCanvases(){
   if (slides[idx].querySelector('#azCanvas')) renderAZCanvas();
 }
 if(localStorage.getItem('mf-theme')==='light') body.classList.add('light');
+{
+  const b=document.getElementById('btnTheme');
+  if(b) b.classList.toggle('on', body.classList.contains('light'));
+}
 
 /* keyboard */
 window.addEventListener('keydown',(e)=>{
