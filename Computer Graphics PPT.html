@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Mandelbrot Set — Southeast University, CSE</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
+
+<style>
+/* ===================================================================
+   THE MANDELBROT SET — editorial academic deck
+   One accent (ochre), warm ink palette, serif display + sans body.
+   =================================================================== */
+:root{
+  color-scheme:dark;
+  --bg:#131109;
+  --bg-panel:#191609;
+  --bg-inset:#0D0B06;
+  --ink:#ECE7DB;
+  --ink-dim:#A29B8D;
+  --ink-faint:#716A5C;
+  --line:rgba(236,231,219,.14);
+  --line-strong:rgba(236,231,219,.26);
+  --accent:#D9A441;
+  --accent-ink:#F0C868;
+  --accent-dim:rgba(217,164,65,.16);
+  --red:#CF6A47;
+  --red-dim:rgba(207,106,71,.16);
+  --serif:"Fraunces",Georgia,"Times New Roman",serif;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+body.light{
+  color-scheme:light;
+  --bg:#F5F1E8;
+  --bg-panel:#FCFAF4;
+  --bg-inset:#EFEAE0;
+  --ink:#211C14;
+  --ink-dim:#5C564B;
+  --ink-faint:#8F8678;
+  --line:rgba(33,28,20,.14);
+  --line-strong:rgba(33,28,20,.28);
+  --accent:#A87812;
+  --accent-ink:#8A5F0C;
+  --accent-dim:rgba(168,120,18,.14);
+  --red:#B3502C;
+  --red-dim:rgba(179,80,44,.14);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--accent);color:#0D0B06}
+
+/* ---------- deck scaffolding ---------- */
+.deck{position:fixed;inset:0;display:flex;flex-direction:column}
+
+.slide{
+  position:absolute;inset:0;
+  display:none;
+  padding:clamp(26px,4.5vh,54px) clamp(34px,5.4vw,76px) clamp(24px,4vh,48px);
+  overflow:hidden;
+}
+.slide.active{display:block;animation:rise .3s cubic-bezier(.2,.7,.3,1) both}
+@keyframes rise{
+  from{opacity:0;transform:translateY(14px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.slide-in{height:100%;display:flex;flex-direction:column;min-height:0}
+
+/* page mark (bottom-right of each slide body) */
+.page-mark{
+  position:absolute;right:clamp(24px,3.4vw,52px);bottom:clamp(18px,3vh,30px);
+  font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+  color:var(--ink-faint);text-transform:uppercase;
+  user-select:none;
+}
+
+/* ---------- typographic atoms ---------- */
+.kick{
+  font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--accent-ink);display:flex;align-items:center;gap:12px;white-space:nowrap;
+}
+.kick::before{content:"";width:26px;height:1px;background:var(--accent);display:inline-block;flex:none}
+.kick::after{content:"";height:1px;background:var(--line);flex:1;display:inline-block}
+
+.title{
+  font-family:var(--serif);font-weight:600;
+  font-size:clamp(30px,3.6vw,54px);
+  line-height:1.04;letter-spacing:-.015em;
+  margin-top:14px;color:var(--ink);
+  text-wrap:balance;
+}
+.title em{font-style:italic;font-weight:500;color:var(--accent)}
+.sub{margin-top:12px;color:var(--ink-dim);font-size:clamp(15px,1.4vw,18px);line-height:1.55;max-width:66ch}
+.sub strong{color:var(--ink);font-weight:600}
+
+.hd{margin-bottom:clamp(18px,3.2vh,34px);flex:none}
+
+/* ---------- grid helpers ---------- */
+.cols{display:grid;gap:clamp(24px,3.4vw,60px);min-height:0;flex:1}
+.c2{grid-template-columns:minmax(0,45fr) minmax(0,55fr);align-items:center}
+.c2a{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+.c2b{grid-template-columns:minmax(0,52fr) minmax(0,48fr);align-items:center}
+.grow{min-height:0}
+
+/* ---------- panels ---------- */
+.panel{
+  background:var(--bg-panel);
+  border:1px solid var(--line);
+  padding:clamp(16px,2.4vh,26px);
+  min-height:0;display:flex;flex-direction:column;gap:14px;
+}
+
+.tick{width:3px;height:3px;border-radius:50%;background:var(--accent);display:inline-block;vertical-align:middle;margin-right:8px}
+.mono{font-family:var(--mono)}
+
+/* ---------- buttons / controls ---------- */
+.btn{
+  font-family:var(--mono);font-size:12px;letter-spacing:.08em;
+  color:var(--ink-dim);background:transparent;
+  border:1px solid var(--line);padding:8px 12px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;transition:color .18s,border-color .18s,background .18s;
+}
+.btn:hover{color:var(--ink);border-color:var(--line-strong);background:var(--accent-dim);border-color:var(--accent)}
+.btn svg{flex:none}
+.chip{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;
+  color:var(--ink-dim);background:transparent;
+  border:1px solid var(--line);padding:6px 11px;cursor:pointer;
+  transition:color .15s,border-color .15s,background .15s;
+}
+.chip:hover{border-color:var(--accent);color:var(--accent-ink)}
+.chip.on{border-color:var(--accent);background:var(--accent-dim);color:var(--accent-ink)}
+
+.seg{display:inline-flex;border:1px solid var(--line-strong)}
+.seg button{
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+  color:var(--ink-dim);background:transparent;border:0;padding:8px 16px;cursor:pointer;
+  transition:color .15s,background .15s;
+}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{color:var(--bg);background:var(--accent)}
+
+/* ---------- inputs ---------- */
+input[type=number].num{
+  font-family:var(--mono);color:var(--ink);background:var(--bg-inset);
+  border:1px solid var(--line);border-bottom-color:var(--line-strong);
+  padding:7px 8px;width:100%;min-width:0;font-size:14px;text-align:center;
+}
+input[type=number].num::-webkit-inner-spin-button{-webkit-appearance:none;appearance:none}
+input[type=number].num:focus{outline:none;border-color:var(--accent)}
+
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--line-strong);outline:none}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--accent);border:none;cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:none;cursor:pointer}
+input[type=range]:focus{outline:1px auto var(--accent)}
+
+/* ---------- header footer ---------- */
+.hdr{
+  flex:none;height:56px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 clamp(24px,3.4vw,52px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:baseline;gap:14px;min-width:0}
+.brand b{
+  font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.01em;white-space:nowrap;
+}
+.brand b::before{content:"◆";color:var(--accent);font-size:10px;margin-right:9px;vertical-align:2px}
+.brand span{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap;
+}
+.hact{display:flex;gap:8px}
+
+.ftr{
+  flex:none;height:46px;position:relative;display:flex;align-items:center;justify-content:space-between;
+  padding:0 clamp(24px,3.4vw,52px);
+  border-top:1px solid var(--line);
+}
+.prog{position:absolute;top:-1px;left:0;height:2px;background:var(--accent);width:0%;transition:width .3s ease}
+.slno{font-family:var(--mono);font-size:12px;color:var(--ink-faint);letter-spacing:.1em}
+.slno b{color:var(--ink)}
+.nav{display:flex;gap:8px}
+
+/* ---------- overview modal ---------- */
+.ovl{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 88%,transparent);display:none;z-index:40;padding:60px}
+.ovl.open{display:block;animation:fade .18s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.ovl-in{max-width:1080px;margin:0 auto}
+.ovl h3{font-family:var(--serif);font-weight:600;font-size:26px;margin-bottom:4px}
+.ovl p{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:22px}
+.ogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.ocard{
+  background:var(--bg-panel);border:1px solid var(--line);padding:16px 18px;cursor:pointer;
+  transition:border-color .15s,transform .15s;
+}
+.ocard:hover{border-color:var(--accent);transform:translateY(-2px)}
+.ocard .n{font-family:var(--mono);font-size:11px;color:var(--accent-ink);letter-spacing:.1em;display:block;margin-bottom:6px}
+.ocard .t{font-family:var(--serif);font-size:17px;font-weight:500;line-height:1.2}
+
+/* ---------- title slide ---------- */
+.title-slide{position:relative;justify-content:flex-start;align-items:center;text-align:center;max-width:1280px;margin:0 auto;width:100%}
+.title-hero{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:0}
+.hero{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(72px,10.2vw,150px);line-height:.96;letter-spacing:-.02em;white-space:nowrap;
+}
+.hero em{font-style:italic;font-weight:400;color:var(--accent)}
+.title-kicker{
+  display:flex;align-items:center;gap:14px;
+  font-family:var(--mono);font-size:clamp(11px,1vw,13px);letter-spacing:.24em;text-transform:uppercase;color:var(--ink-dim);
+  margin-bottom:28px;
+}
+.title-kicker::before{content:"";width:34px;height:1px;background:var(--accent)}
+.hero-deck{
+  font-family:var(--serif);font-size:clamp(17px,1.5vw,23px);font-style:italic;color:var(--ink-dim);
+  margin-top:22px;max-width:56ch;line-height:1.45;
+}
+.title-foot{position:absolute;left:0;right:0;bottom:0;width:100%}
+.team{
+  width:100%;
+  border-top:1px solid var(--line-strong);
+  padding-top:clamp(18px,3vh,32px);
+  display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(14px,2vw,26px);text-align:left;
+}
+.tm{border-left:1px solid var(--line);padding-left:16px;min-width:0}
+.tm b{font-family:var(--serif);font-weight:600;font-size:clamp(16px,1.35vw,21px);line-height:1.2;display:block}
+.tm i{font-style:normal;font-family:var(--mono);font-size:clamp(11px,0.95vw,13px);display:inline-block;margin-top:7px;color:var(--ink-faint);letter-spacing:.05em;word-break:break-all}
+.meta-line{
+  width:100%;margin-top:clamp(22px,4vh,44px);display:flex;justify-content:flex-start;gap:24px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:clamp(12px,1.1vw,16px);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);
+}
+.meta-line b{color:var(--ink-dim);font-weight:500}
+
+/* ---------- roadmap slide ---------- */
+.road{display:flex;flex-direction:column;gap:0;flex:1;min-height:0}
+.leg{
+  display:grid;grid-template-columns:72px minmax(0,220px) 1fr;gap:clamp(14px,2vw,26px);align-items:baseline;
+  padding:clamp(13px,2vh,20px) 0;border-top:1px solid var(--line);
+}
+.leg:last-child{border-bottom:1px solid var(--line)}
+.leg .num{
+  font-family:var(--serif);font-style:italic;font-weight:400;color:var(--accent);
+  font-size:clamp(20px,2vw,30px);
+}
+.leg .lbl{font-family:var(--serif);font-weight:600;font-size:clamp(18px,1.7vw,25px);color:var(--ink)}
+.leg .dsc{font-size:clamp(13px,1.15vw,16px);line-height:1.5;color:var(--ink-dim);max-width:52ch}
+.map-aside{padding-left:clamp(8px,2vw,28px);border-left:1px solid var(--line)}
+
+/* ---------- callouts & lists ---------- */
+.note{
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;line-height:1.7;color:var(--ink-dim);
+  border:1px dashed var(--line-strong);padding:12px 16px;background:var(--bg-inset);
+}
+.note b{color:var(--accent-ink);font-weight:500}
+.flag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--accent-ink);border:1px solid var(--accent);padding:1px 6px;border-radius:2px;vertical-align:1px;margin-left:6px}
+.pull{
+  font-family:var(--serif);font-weight:500;font-style:italic;
+  font-size:clamp(26px,3vw,44px);line-height:1.22;letter-spacing:-.01em;max-width:22ch;
+}
+.pull em{font-style:normal;font-family:var(--mono);font-size:13px;color:var(--ink-faint);letter-spacing:.12em;display:block;margin-top:18px;white-space:normal}
+.qattr{display:flex;gap:14px;align-items:center;color:var(--ink-dim);font-size:14px}
+.qattr::before{content:"—";color:var(--accent)}
+.why-grid{display:grid;gap:14px}
+.why-item{padding:16px 18px;border:1px solid var(--line);background:var(--bg-panel)}
+.why-item b{font-family:var(--serif);font-weight:600;font-size:17px;display:block;margin-bottom:6px}
+.why-item p{font-size:14px;line-height:1.55;color:var(--ink-dim)}
+
+/* ---------- orbit / equation cards ---------- */
+.eqcard{
+  background:var(--bg-inset);border:1px solid var(--line);padding:clamp(16px,2.6vh,30px);
+  text-align:center;
+}
+.eqcard .cap{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:12px;display:block}
+.seq{
+  font-family:var(--mono);font-size:clamp(13px,1.2vw,17px);letter-spacing:.02em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:10px 0 2px;border-bottom:1px solid var(--line);
+}
+.seq .a{color:var(--accent-ink)}
+.seq .b{color:var(--ink-dim)}
+.seq .r{color:var(--red)}
+.bounded{border-top:2px solid var(--accent)}
+.escaped{border-top:2px solid var(--red)}
+
+/* ---------- tables ---------- */
+.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:clamp(12px,1.05vw,14px)}
+.tbl th{
+  text-align:left;font-weight:500;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.12em;font-size:10.5px;
+  padding:6px 10px;border-bottom:1px solid var(--line-strong);
+}
+.tbl td{padding:6px 10px;border-bottom:1px solid var(--line);color:var(--ink-dim)}
+.tbl tr.lst td{border-bottom:0}
+.tbl td.h{color:var(--ink)}
+.g{color:var(--accent-ink)}
+.r{color:var(--red)}
+
+/* ---------- bibliography ---------- */
+.bib{display:flex;flex-direction:column;gap:0}
+.bib-item{
+  display:grid;grid-template-columns:44px 1fr;gap:14px;padding:14px 0;
+  border-top:1px solid var(--line);
+}
+.bib-item:last-child{border-bottom:1px solid var(--line)}
+.bib-item .bc{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:18px}
+.bib-item cite{font-style:normal;font-family:var(--serif);font-size:clamp(15px,1.25vw,18px);color:var(--ink);line-height:1.35}
+.bib-item .src{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);margin-top:5px;letter-spacing:.03em;line-height:1.6}
+.fut{display:flex;flex-direction:column;gap:12px}
+.fut-item{display:flex;gap:14px;align-items:baseline;padding:0 0 12px;border-bottom:1px solid var(--line)}
+.fut-item .fn{font-family:var(--mono);font-size:12px;color:var(--accent-ink);flex:none}
+.fut-item p{font-size:clamp(14px,1.2vw,17px);line-height:1.45;color:var(--ink)}
+.fut-item small{display:block;font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-top:3px}
+
+/* ---------- conclusion ---------- */
+.take{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.take-item{border-top:2px solid var(--accent);padding:18px 2px 0}
+.take-item .tn{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:20px;display:block;margin-bottom:8px}
+.take-item b{font-family:var(--serif);font-weight:600;font-size:19px;display:block;margin-bottom:8px}
+.take-item p{font-size:14px;line-height:1.55;color:var(--ink-dim)}
+.close-quote{
+  margin-top:auto;
+  padding:clamp(18px,3vh,28px) 0 0;border-top:1px solid var(--line-strong);
+  font-family:var(--serif);font-style:italic;font-weight:500;
+  font-size:clamp(20px,2vw,30px);line-height:1.35;
+}
+.close-quote .who{display:block;font-style:normal;font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--ink-faint);margin-top:12px;text-transform:uppercase}
+
+/* ===================================================================
+   INTERACTIVE SLIDE
+   =================================================================== */
+.live-body{display:grid;grid-template-columns:minmax(0,470px) minmax(0,1fr);gap:clamp(22px,3vw,48px);flex:1;min-height:0}
+.fml-panel{display:flex;flex-direction:column;gap:16px;min-height:0}
+.fml-panel .big-eq{
+  background:var(--bg-inset);border:1px solid var(--line);
+  padding:clamp(18px,3vh,30px) 18px;text-align:center;flex:none;
+}
+.readouts{display:flex;gap:8px;flex-wrap:wrap}
+.readout{
+  font-family:var(--mono);font-size:12px;letter-spacing:.05em;color:var(--ink-dim);
+  border:1px solid var(--line);background:var(--bg-panel);padding:7px 10px;
+}
+.readout b{color:var(--accent-ink);font-weight:500}
+.input-row{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}
+.input-row label{font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--ink-faint);text-transform:uppercase}
+.spin{display:inline-flex;border:1px solid var(--line)}
+.spin button{
+  font-family:var(--mono);font-size:14px;color:var(--ink-dim);background:transparent;border:0;
+  width:30px;height:34px;cursor:pointer;
+}
+.spin button:hover{color:var(--accent-ink);background:var(--accent-dim)}
+.spin button + input{margin-left:0}
+.tape-wrap{
+  flex:1;min-height:0;overflow-y:auto;
+  border:1px solid var(--line);background:var(--bg-inset);padding:8px 12px;
+}
+.tape{font-family:var(--mono);font-size:12px;line-height:1.85;color:var(--ink-dim)}
+.tape-row{display:grid;grid-template-columns:44px 1fr 120px;gap:8px;border-bottom:1px dotted var(--line)}
+.tape-row.head{color:var(--ink-faint);border-bottom:1px solid var(--line-strong)}
+.tape-row.k{color:var(--ink)}
+.tape-row.hl{background:var(--accent-dim)}
+.tape-row.esc .z{color:var(--red)}
+.tape-row .m{color:var(--ink-dim)}
+.tape-row .n1{color:var(--ink)}
+.tape-row .val{text-align:right}
+.status{
+  font-family:var(--mono);font-size:12.5px;line-height:1.6;letter-spacing:.03em;
+  padding:11px 14px;border:1px solid var(--line);background:var(--bg-inset);
+}
+.status .w{color:var(--ink)}
+.status.in .w{color:var(--accent-ink)}
+.status.out .w{color:var(--red)}
+.status b{font-weight:500}
+.play-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.slider-block{flex:1;min-width:150px}
+.slider-block .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:.08em;margin-bottom:6px}
+
+.canvas-col{display:flex;flex-direction:column;min-height:0;gap:10px}
+.stagebox{
+  position:relative;flex:1;min-height:0;
+  background:var(--bg-inset);border:1px solid var(--line);
+  overflow:hidden;
+}
+.stagebox canvas{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+.hud{
+  position:absolute;top:10px;left:12px;z-index:2;pointer-events:none;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;color:var(--ink);line-height:1.7;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);
+  padding:6px 10px;border-left:2px solid var(--accent);
+}
+.hud b{color:var(--accent-ink);font-weight:500}
+.hud .rk{color:var(--red)}
+.stage-cap{
+  flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-faint);
+}
+.seg-wrap{display:flex;align-items:center;gap:12px}
+
+/* ---------- close / thanks ---------- */
+.thx{max-width:1100px;margin:0 auto;width:100%;justify-content:center;display:flex;flex-direction:column;min-height:100%}
+.thx .hero{font-size:clamp(44px,6vw,92px)}
+.pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:34px}
+.pills span{
+  font-family:var(--sans);font-size:14px;color:var(--ink);
+  border:1px solid var(--line);background:var(--bg-panel);padding:8px 14px;
+  display:flex;gap:10px;align-items:baseline;
+}
+.pills i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+
+/* ---------- SVG figures ---------- */
+.fig-cap{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink-faint);text-transform:uppercase;margin-top:12px}
+.fig-cap b{color:var(--accent-ink);font-weight:500}
+.svg-ink text{fill:var(--ink-dim)}
+.svg-ink .acc{stroke:var(--accent)}           /* semantics below use explicit vars */
+
+/* autozoom controls */
+.az-ctl{position:absolute;bottom:12px;left:12px;z-index:2;display:flex;gap:8px}
+.az-hud{position:absolute;top:10px;left:12px;z-index:2;font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);letter-spacing:.04em}
+
+/* app two-col */
+.app-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.app-card{border:1px solid var(--line);background:var(--bg-panel);padding:18px 20px;display:flex;gap:16px;align-items:flex-start}
+.app-card svg{flex:none;margin-top:2px}
+.app-card b{font-family:var(--serif);font-weight:600;font-size:18px;display:block;margin-bottom:6px}
+.app-card p{font-size:13.5px;line-height:1.55;color:var(--ink-dim)}
+
+@media (max-width:1020px){
+  .cols.c2,.cols.c2a,.cols.c2b{grid-template-columns:1fr;overflow-y:auto}
+  .team{grid-template-columns:repeat(2,1fr)}
+  .take{grid-template-columns:1fr}
+  .live-body{grid-template-columns:1fr;overflow-y:auto}
+  .app-grid{grid-template-columns:1fr}
+  .hero{font-size:44px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="deck">
+
+  <!-- ============================== HEADER ============================== -->
+  <header class="hdr">
+    <div class="brand">
+      <b>Southeast University</b>
+      <span>Dept. of Computer Science &amp; Engineering</span>
+    </div>
+    <div class="hact">
+      <button class="btn" id="btnTheme" title="Toggle light / dark (T)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></svg>
+        Theme
+      </button>
+      <button class="btn" onclick="toggleOverview()" title="Overview (O)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="3.5" width="7" height="7"/><rect x="13.5" y="3.5" width="7" height="7"/><rect x="3.5" y="13.5" width="7" height="7"/><rect x="13.5" y="13.5" width="7" height="7"/></svg>
+        Overview
+      </button>
+      <button class="btn" onclick="toggleFullscreen()" title="Fullscreen (F)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        Fullscreen
+      </button>
+    </div>
+  </header>
+
+  <!-- ============================== MAIN ============================== -->
+  <main class="deck" id="viewport" style="position:relative;flex:1;min-height:0">
+
+  <!-- ──────────────────────────── S1 · TITLE ──────────────────────────── -->
+  <section class="slide active" data-title="The Mandelbrot Set">
+    <div class="slide-in title-slide">
+      <div class="title-hero">
+        <h1 class="hero">The <em>Mandelbrot</em> Set</h1>
+      </div>
+
+      <div class="title-foot">
+        <div class="team">
+          <div class="tm"><b>Samiul Haque Seam</b><i>2023200000160</i></div>
+          <div class="tm"><b>Md Shahadat Hossan</b><i>2023200000599</i></div>
+          <div class="tm"><b>Azim Pial</b><i>2023200000601</i></div>
+          <div class="tm"><b>Wahid Imtiaz Arnob</b><i>2023200000616</i></div>
+          <div class="tm"><b>Naima Sultana</b><i>2023200000636</i></div>
+        </div>
+
+        <div class="meta-line">
+          <span><b>Department of Computer Science &amp; Engineering</b> · Southeast University</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S2 · ROADMAP ──────────────────────────── -->
+  <section class="slide" data-title="Roadmap">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">00 · Roadmap</span>
+        <h2 class="title">Where the talk goes</h2>
+        <p class="sub">Six movements, from one historical observation to an open conjecture — each building on the last.</p>
+      </div>
+      <div class="cols c2b">
+        <div class="road" style="align-self:start">
+          <div class="leg"><span class="num">01</span><span class="lbl">Background</span><span class="dsc">Why a 1980 computer plot settled questions from 1918 — and what "fractal" meant.</span></div>
+          <div class="leg"><span class="num">02</span><span class="lbl">Basic concepts</span><span class="dsc">Complex numbers and one iterated rule: membership is decided by an orbit.</span></div>
+          <div class="leg"><span class="num">03</span><span class="lbl">Construction</span><span class="dsc">Points of the plane tested one by one; the set turns out to be singular.</span></div>
+          <div class="leg"><span class="num">04</span><span class="lbl">Algorithm &amp; properties</span><span class="dsc">The escape-time algorithm, a live demonstration, and a boundary with dimension 2.</span></div>
+          <div class="leg"><span class="num">05</span><span class="lbl">Applications</span><span class="dsc">Antennas, film, encryption, compression — fractals in the field.</span></div>
+          <div class="leg"><span class="num">06</span><span class="lbl">Research &amp; future</span><span class="dsc">The papers that proved it, and the conjecture that still resists proof.</span></div>
+        </div>
+        <div class="map-aside" style="align-self:center">
+          <svg viewBox="0 0 400 470" width="100%" height="auto" role="img" aria-label="The Mandelbrot set">
+            <g stroke="var(--line-strong)" stroke-width="1">
+              <line x1="200" y1="8" x2="200" y2="462"/>
+              <line x1="8" y1="220" x2="392" y2="220"/>
+            </g>
+            <text x="206" y="24" font-family="monospace" font-size="11" fill="var(--ink-faint)">Im</text>
+            <text x="352" y="214" font-family="monospace" font-size="11" fill="var(--ink-faint)">Re</text>
+            <circle cx="200" cy="220" r="132" fill="none" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 5"/>
+            <text x="214" y="150" font-family="monospace" font-size="10" fill="var(--ink-faint)">|z| = 2</text>
+            <path d="M 330,220 C 330,236 236,262 186,262 C 148,262 96,248 96,220 C 96,192 148,178 186,178 C 280,178 330,204 330,220 Z"
+                  fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.6"/>
+            <circle cx="96" cy="220" r="33" fill="none" stroke="var(--accent)" stroke-width="1.4"/>
+            <circle cx="69" cy="220" r="13" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+            <g fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.2">
+              <circle cx="210" cy="168" r="5"/><circle cx="255" cy="112" r="4"/><circle cx="286" cy="96" r="3"/>
+              <circle cx="200" cy="278" r="5"/><circle cx="150" cy="300" r="4"/><circle cx="120" cy="286" r="3"/>
+              <circle cx="150" cy="178" r="4"/><circle cx="120" cy="160" r="3"/>
+            </g>
+            <text x="38" y="330" font-family="monospace" font-size="10.5" fill="var(--ink-dim)">cardioid</text>
+            <text x="60" y="272" font-family="monospace" font-size="10.5" fill="var(--ink-dim)">period-2</text>
+            <text x="76" y="230" font-family="monospace" font-size="10.5" fill="var(--ink-dim)">period-3</text>
+          </svg>
+          <div class="fig-cap">The object of the talk — <b>'M'</b>, the map of the quadratic map</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S3 · HISTORY ──────────────────────────── -->
+  <section class="slide" data-title="Sixty years in the making">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">01 · Background</span>
+        <h2 class="title">A set sixty years in the <em>making</em></h2>
+        <p class="sub">Nothing here starts with a random scribble. From pure analysis in 1918 to the first screen plot in 1980, the ideas matured in steps.</p>
+      </div>
+      <div class="cols c2">
+        <div class="road" style="align-self:start">
+          <div class="leg"><span class="num">1918</span><span class="lbl">Fatou &amp; Julia</span><span class="dsc">Iteration of complex rational maps studied rigorously — with no computer to draw them. Beautiful theory, no pictures.</span></div>
+          <div class="leg"><span class="num">1975</span><span class="lbl">"Fractal"</span><span class="dsc">Mandelbrot coins the word from Latin <em>fractus</em> — broken, irregular — to name geometry that classical figures miss. <span class="flag">VERIFY</span></span></div>
+          <div class="leg"><span class="num">1980</span><span class="lbl">IBM · T. J. Watson</span><span class="dsc">Working on a mainframe, Mandelbrot first plots the geometry of <span class="mono">z ↦ z² + c</span> — a silhouette never seen before. <span class="flag">VERIFY</span></span></div>
+          <div class="leg"><span class="num">1982–84</span><span class="lbl">Douady &amp; Hubbard</span><span class="dsc">They prove, against intuition, that the whole object is one connected curve — and name it the Mandelbrot set. <span class="flag">VERIFY</span></span></div>
+        </div>
+        <div class="grow" style="align-self:start;max-width:520px">
+          <div class="panel" style="background:var(--bg-inset);gap:0">
+            <svg viewBox="0 0 520 330" width="100%" height="auto">
+              <rect x="1" y="1" width="518" height="268" fill="none" stroke="var(--line-strong)" stroke-width="1.4"/>
+              <g stroke="var(--line)" stroke-width="1">
+                <line x1="40" y1="60" x2="480" y2="60"/><line x1="40" y1="120" x2="480" y2="120"/>
+                <line x1="40" y1="180" x2="480" y2="180"/><line x1="40" y1="240" x2="480" y2="240"/>
+                <line x1="150" y1="14" x2="150" y2="256"/><line x1="260" y1="14" x2="260" y2="256"/>
+                <line x1="370" y1="14" x2="370" y2="256"/>
+              </g>
+              <text x="48" y="40" font-family="monospace" font-size="11" letter-spacing="2" fill="var(--ink-faint)">IBM 370 · T.J. WATSON · 1980</text>
+              <circle cx="452" cy="34" r="3" fill="var(--accent)"/>
+              <g class="crt-set">
+                <path d="M 360,150 C 360,120 270,100 240,150 C 270,200 360,180 360,150 Z"
+                      fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.6"/>
+                <circle cx="213" cy="150" r="22" fill="none" stroke="var(--accent)" stroke-width="1.4"/>
+                <circle cx="190" cy="150" r="9" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.2"/>
+                <path d="M 182,150 L 172,150 M 360,150 L 368,150" stroke="var(--accent)" stroke-width="1.2"/>
+              </g>
+              <g class="scan"><line x1="40" y1="40" x2="480" y2="40" stroke="var(--accent)" stroke-width="1.4" opacity=".75"/></g>
+              <text x="48" y="298" font-family="monospace" font-size="10.5" fill="var(--ink-dim)">first computable images of the set — a morphology nobody had yet described</text>
+            </svg>
+            <div class="fig-cap">Plotted point by point on a line printer / CRT: <b>the set exists</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S4 · WHY ──────────────────────────── -->
+  <section class="slide" data-title="A geometry for the roughness of nature">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">01 · Background</span>
+        <h2 class="title">The problem classical geometry left <em>unsolved</em></h2>
+      </div>
+      <div class="cols c2" style="grid-template-columns:minmax(0,40fr) minmax(0,60fr);align-items:stretch">
+        <div style="display:flex;flex-direction:column;justify-content:center;gap:18px;min-height:0">
+          <p class="pull">"Clouds are not spheres, mountains are not cones, and bark is not smooth."</p>
+          <p class="qattr">Benoît B. Mandelbrot, <cite style="font-style:italic">The Fractal Geometry of Nature</cite>, 1982</p>
+        </div>
+        <div class="why-grid" style="align-content:center">
+          <div class="why-item">
+            <b>Smooth shapes describe invented things, not found things</b>
+            <p>Euclidean figures — lines, circles, cones — fit machines and drawings. Rivers, coastlines, lungs and lightning obey no such formulas.</p>
+          </div>
+          <div class="why-item">
+            <b>Roughness is a property, not a defect</b>
+            <p>A coastline gets longer the closer you look; its length is meaningless — but its <em>fractal dimension</em> is roughly constant at every scale.</p>
+          </div>
+          <div class="why-item">
+            <b>Computers made the invisible visible</b>
+            <p>Iteration theory from 1918 predicted geometries like these. Only computing gave them to the eye — and M was the first.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S5 · COMPLEX PLANE ──────────────────────────── -->
+  <section class="slide" data-title="Working in the complex plane">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">02 · Basic concept</span>
+        <h2 class="title">Working in the <em>complex plane</em></h2>
+        <p class="sub">Every point we will ever test is a complex number — two real coordinates wearing one name.</p>
+      </div>
+      <div class="cols c2b">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="eqcard">
+            <span class="cap">A point in the plane</span>
+            $$c = a + bi, \qquad i^2 = -1$$
+          </div>
+          <div class="note">
+            <b>Two axes.</b> Re<span class="mono">a</span> runs horizontally, Im<span class="mono">b</span> vertically. We test roughly <span class="mono">a ∈ [−2.00, +0.70]</span>, <span class="mono">b ∈ [−1.20, +1.20]</span>.
+          </div>
+          <div class="note">
+            <b>One screen = one complex plane.</b> Each pixel <em>is</em> a number <span class="mono">c</span>. The set <em>M</em> simply records the fate of <span class="mono">z₀ = 0</span> under repeated squaring-and-adding-c.
+          </div>
+        </div>
+        <div style="max-width:560px;justify-self:center;width:100%">
+          <svg viewBox="0 0 460 460" width="100%" height="auto">
+            <g stroke="var(--line-strong)" stroke-width="1.2">
+              <line x1="30" y1="230" x2="430" y2="230"/>
+              <line x1="230" y1="30" x2="230" y2="430"/>
+            </g>
+            <g stroke="var(--line)" stroke-width="1">
+              <line x1="92" y1="60" x2="92" y2="400"/><line x1="368" y1="60" x2="368" y2="400"/>
+              <line x1="60" y1="92" x2="400" y2="92"/><line x1="60" y1="368" x2="400" y2="368"/>
+            </g>
+            <text x="236" y="44" font-family="monospace" font-size="12" fill="var(--ink-faint)">Im(b)</text>
+            <text x="410" y="222" font-family="monospace" font-size="12" fill="var(--ink-faint)">Re(a)</text>
+            <circle cx="230" cy="230" r="150" fill="none" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 5"/>
+            <text x="244" y="86" font-family="monospace" font-size="10" fill="var(--ink-faint)">|z| = 2 (test radius)</text>
+            <line x1="230" y1="230" x2="168" y2="286" stroke="var(--accent)" stroke-width="1.5"/>
+            <circle cx="168" cy="286" r="6" fill="var(--accent)"/>
+            <circle cx="168" cy="286" r="11" fill="none" stroke="var(--accent)" opacity=".5"/>
+            <text x="150" y="308" font-family="monospace" font-size="12" fill="var(--accent-ink)">c = −0.75 + 0.10i</text>
+            <circle cx="230" cy="230" r="4" fill="var(--ink)"/>
+            <text x="236" y="212" font-family="monospace" font-size="11" fill="var(--ink-faint)">0 (the seed)</text>
+          </svg>
+          <div class="fig-cap">A point c in the plane — its orbit under <span class="mono">z² + c</span> decides membership</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S6 · ITERATION ──────────────────────────── -->
+  <section class="slide" data-title="One rule, endlessly repeated">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">02 · Basic concept</span>
+        <h2 class="title">One rule, endlessly <em>repeated</em></h2>
+        <p class="sub">The whole set comes from a single instruction applied again and again. Membership is decided by what the orbit does.</p>
+      </div>
+      <div class="cols c2a" style="grid-template-columns:minmax(0,47fr) minmax(0,53fr);align-items:start">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="eqcard">
+            <span class="cap">The recurrence — square, then add c</span>
+            $$z_0 = 0, \qquad z_{n+1} = z_n^2 + c$$
+          </div>
+          <div class="eqcard">
+            <span class="cap">Definition of the set</span>
+            $$\mathcal{M} = \bigl\{\, c \in \mathbb{C} \;:\; \text{the orbit of } 0 \text{ stays bounded}\,\bigr\}$$
+            <div style="margin-top:10px;font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);letter-spacing:.05em">equivalently <span class="mono" style="color:var(--accent-ink)">lim&#8202;sup&#8202;|z\u2099| &#8804; 2</span></div>
+          </div>
+          <p style="font-size:14px;line-height:1.6;color:var(--ink-dim)">
+            Two numbers enter — <span class="mono">c</span> stays fixed; only <span class="mono">z</span> moves. Two outcomes are possible: the orbit stays near the origin, or it flies away to infinity. Nothing in between matters very much.
+          </p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="panel bounded">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <b style="font-family:var(--serif);font-weight:600;font-size:18px">Bounded — inside M</b>
+              <span class="mono" style="color:var(--accent-ink);font-size:12px">c = 0</span>
+            </div>
+            <div class="seq"><span class="a">0</span><span class="b"> → </span><span class="a">0</span><span class="b"> → </span><span class="a">0</span><span class="b"> → 0 → …</span></div>
+            <p style="font-size:13.5px;color:var(--ink-dim);line-height:1.55">The orbit never leaves the disk <span class="mono">|z| ≤ 2</span> — forever. So <span class="mono">c = 0</span> belongs to the set.</p>
+          </div>
+          <div class="panel escaped">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <b style="font-family:var(--serif);font-weight:600;font-size:18px">Escaping — outside M</b>
+              <span class="mono" style="color:var(--red);font-size:12px">c = 1</span>
+            </div>
+            <div class="seq"><span class="a">0</span><span class="b"> → </span><span class="a">1</span><span class="b"> → </span><span class="a">2</span><span class="b"> → </span><span class="a">5</span><span class="b"> → 26 → …</span></div>
+            <p style="font-size:13.5px;color:var(--ink-dim);line-height:1.55">Once past <span class="mono">|z| &gt; 2</span> the size of <span class="mono">z</span> explodes. At step 3 the orbit has escaped — so <span class="mono">c = 1</span> is not in the set.</p>
+          </div>
+          <div class="note">
+            <b>Two fates, one question.</b> Bounded or not? The answer — computed for millions of <span class="mono">c</span> — draws the set (slide 07).
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S7 · CONSTRUCTION ──────────────────────────── -->
+  <section class="slide" data-title="Painting the plane, one point at a time">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">03 · Construction</span>
+        <h2 class="title">Painting the plane, <em>one point at a time</em></h2>
+        <p class="sub">Construction is not a shape we draw — it is a verdict we compute. Every pixel is an orbit traced until its fate is known.</p>
+      </div>
+      <div class="cols c2b" style="grid-template-columns:minmax(0,52fr) minmax(0,48fr);align-items:start">
+        <div style="display:flex;flex-direction:column;gap:22px">
+          <div class="panel">
+            <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px">
+              <b style="font-family:var(--serif);font-weight:600;font-size:18px;color:var(--accent-ink)">c = 0</b>
+              <span class="mono" style="font-size:12px;color:var(--ink-dim)">fixed point — orbit never leaves</span>
+            </div>
+            <table class="tbl">
+              <tr><th>n</th><th>z\u2099</th><th>|z\u2099|</th><th>fate</th></tr>
+              <tr><td class="h">0</td><td>0</td><td>0.00</td><td class="g">≤ 2 · bounded</td></tr>
+              <tr><td class="h">1</td><td>0</td><td>0.00</td><td class="g">≤ 2 · bounded</td></tr>
+              <tr class="lst"><td class="h">∞</td><td>0</td><td>0.00</td><td class="g">never escapes → in M</td></tr>
+            </table>
+          </div>
+          <div class="panel">
+            <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px">
+              <b style="font-family:var(--serif);font-weight:600;font-size:18px;color:var(--red)">c = 1</b>
+              <span class="mono" style="font-size:12px;color:var(--ink-dim)">orbit crosses |z| = 2 at step 3</span>
+            </div>
+            <table class="tbl">
+              <tr><th>n</th><th>z\u2099</th><th>|z\u2099|</th><th>fate</th></tr>
+              <tr><td class="h">0</td><td>0</td><td>0.00</td><td class="g">≤ 2 · bounded</td></tr>
+              <tr><td class="h">1</td><td>1</td><td>1.00</td><td class="g">≤ 2 · bounded</td></tr>
+              <tr><td class="h">2</td><td>2</td><td>2.00</td><td class="g">≤ 2 · on the edge</td></tr>
+              <tr class="lst"><td class="h">3</td><td>5</td><td>5.00</td><td class="r">&gt; 2 · escaped → outside M</td></tr>
+            </table>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="panel" style="gap:0">
+            <div style="display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:baseline">
+              <span class="mono" style="color:var(--accent-ink);font-size:13px">1.</span>
+              <span style="font-size:14.5px;line-height:1.5;color:var(--ink)">Pick a screen pixel → read off its complex number <span class="mono" style="color:var(--accent-ink)">c</span>.</span>
+              <span class="mono" style="color:var(--accent-ink);font-size:13px">2.</span>
+              <span style="font-size:14.5px;line-height:1.5;color:var(--ink)">Iterate <span class="mono">z\u2099</span> from 0, again and again — count the steps until (or unless) <span class="mono">|z|</span> exceeds 2.</span>
+              <span class="mono" style="color:var(--accent-ink);font-size:13px">3.</span>
+              <span style="font-size:14.5px;line-height:1.5;color:var(--ink)">No escape → paint it solid <b>ink</b> (<span class="mono">∈ M</span>). Escaped at step n → paint by that <b>count</b>.</span>
+              <span class="mono" style="color:var(--accent-ink);font-size:13px">4.</span>
+              <span style="font-size:14.5px;line-height:1.5;color:var(--ink)">Do it ~2–3 million times. The picture assembles itself.</span>
+            </div>
+          </div>
+          <div class="note">
+            <b>Why colour by n?</b> The step number <i>carries information</i> — it shades the outside and later feeds the smooth-colouring formula (slide 09). Colour is data, not decoration.
+          </div>
+          <p style="font-size:13.5px;color:var(--ink-faint)">Example above is hand-computed; the live slide (10) runs this construction while you watch.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S8 · ESCAPE ──────────────────────────── -->
+  <section class="slide" data-title="Why radius two decides everything">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">04 · Algorithm &amp; properties</span>
+        <h2 class="title">Why radius <em>two</em> decides everything</h2>
+        <p class="sub">We never simulate forever — we don't have to. One number, 2, cuts the work down to a handful of iterations.</p>
+      </div>
+      <div class="cols c2b" style="grid-template-columns:minmax(0,54fr) minmax(0,46fr);align-items:start">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="eqcard">
+            <span class="cap">The escape theorem</span>
+            $$|z_n| > 2 \;\Longrightarrow\; \bigl|z_{n+1}\bigr| \;\ge\; |z_n|\,\bigl(|z_n| - 1\bigr) \;>\; |z_n|$$
+            <p style="margin-top:10px;font-size:13px;line-height:1.6;color:var(--ink-dim);text-align:left">
+              Once <span class="mono">|z\u2099| &gt; 2</span> and <span class="mono">|c| ≤ 2</span>, the growth factor <span class="mono">(|z\u2099|−1) &gt; 1</span>. Every later step is larger than the last — the orbit is <b>forced</b> to infinity. It can never come back.
+            </p>
+          </div>
+          <div class="eqcard">
+            <span class="cap">The GPU shortcut</span>
+            $$\underbrace{\sqrt{x^2 + y^2} > 2}_{\text{needs a square root}} \quad\Longleftrightarrow\quad \underbrace{\,x^2 + y^2 > 4\,}_{\text{two multiplications}}$$
+            <p style="margin-top:10px;font-size:13px;line-height:1.6;color:var(--ink-dim);text-align:left">
+              Across a 1024·768 plot of ~790k pixels, skipping the <span class="mono">sqrt</span> on every iteration keeps the whole construction fast enough to run live.
+            </p>
+          </div>
+          <div class="note">
+            <b>And if it never escapes?</b> We cap the count (say <span class="mono">n = 100</span>). Reaching the cap without crossing radius 2 is taken as membership — an approximation, and a good one for any finite screen.
+          </div>
+        </div>
+        <div style="max-width:560px;justify-self:center;width:100%">
+          <svg viewBox="0 0 460 400" width="100%" height="auto">
+            <line x1="50" y1="330" x2="420" y2="330" stroke="var(--line-strong)" stroke-width="1.2"/>
+            <line x1="50" y1="40" x2="50" y2="330" stroke="var(--line-strong)" stroke-width="1.2"/>
+            <text x="44" y="36" font-family="monospace" font-size="12" fill="var(--ink-dim)">|z\u2099|</text>
+            <text x="404" y="352" font-family="monospace" font-size="12" fill="var(--ink-dim)">n</text>
+            <line x1="60" y1="256" x2="410" y2="256" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
+            <text x="300" y="248" font-family="monospace" font-size="10.5" fill="var(--ink-dim)">|z| = 2 · escape radius</text>
+            <path d="M 60,204 L 150,158 L 240,110 L 300,52" fill="none" stroke="var(--red)" stroke-width="1.6" opacity=".4"/>
+            <path d="M 60,204 L 150,158 L 240,110 L 300,52" fill="none" stroke="var(--red)" stroke-width="2"/>
+            <circle cx="60" cy="204" r="4" fill="var(--ink)"/><text x="58" y="194" font-family="monospace" font-size="10" fill="var(--ink-faint)">z0</text>
+            <circle cx="150" cy="158" r="4" fill="var(--ink)"/><text x="148" y="148" font-family="monospace" font-size="10" fill="var(--ink-faint)">z1</text>
+            <circle cx="240" cy="110" r="4" fill="var(--ink)"/><text x="238" y="100" font-family="monospace" font-size="10" fill="var(--ink-faint)">z2</text>
+            <circle cx="300" cy="52" r="5" fill="var(--red)"/><text x="306" y="46" font-family="monospace" font-size="11" fill="var(--red)">escape!</text>
+            <line x1="60" y1="298" x2="410" y2="298" stroke="var(--accent)" stroke-width="2"/>
+            <circle cx="410" cy="298" r="3.5" fill="var(--accent)"/>
+            <text x="300" y="320" font-family="monospace" font-size="10.5" fill="var(--accent-ink)">c = 0 · never increases</text>
+          </svg>
+          <div class="fig-cap">Growth of |z\u2099| for <b>c = 1</b> — the radius 2 line is a one-way door</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S9 · PROPERTIES + AUTOZOOM ──────────────────────────── -->
+  <section class="slide" data-title="Smooth colour on a rough boundary">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">04 · Algorithm &amp; properties</span>
+        <h2 class="title">Smooth colour on a <em>rough</em> boundary</h2>
+        <p class="sub">Two refinements make the picture both prettier and truer: continuous shading, and a boundary too intricate to draw.</p>
+      </div>
+      <div class="cols c2b" style="grid-template-columns:minmax(0,44fr) minmax(0,56fr);align-items:center">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="eqcard">
+            <span class="cap">Continuous potential · smooth escape count</span>
+            $$\nu(c) = n + 1 - \frac{\log\bigl(\log|z_n|\bigr)}{\log 2}$$
+            <p style="margin-top:10px;font-size:13px;line-height:1.6;color:var(--ink-dim);text-align:left">
+              Replaces the integer step count with a real "escape potential". Result: no visible colour bands at any zoom depth — the gradient flows without breaking.
+            </p>
+          </div>
+          <div class="eqcard">
+            <span class="cap">Fractal dimension of the boundary</span>
+            $$\dim_H\bigl(\partial\,\mathcal{M}\bigr) = 2$$
+            <p style="margin-top:10px;font-size:13px;line-height:1.6;color:var(--ink-dim);text-align:left">
+              Shishikura, 1998: the boundary is so convoluted that it is <b>space-filling</b> — dimension 2, up there with the plane itself. Every magnification shows new, equally intricate structure.
+            </p>
+          </div>
+          <div class="mono" style="font-size:11.5px;color:var(--ink-faint);letter-spacing:.05em">zoom target · seahorse valley</div>
+        </div>
+        <div class="grow" style="min-height:0">
+          <div class="stagebox" style="height:100%;min-height:300px">
+            <canvas id="azCanvas"></canvas>
+            <div class="az-hud" id="azHud">zooming…</div>
+            <div class="az-ctl">
+              <button class="chip" id="azPlay">pause</button>
+              <button class="chip" onclick="azReset()">reset</button>
+            </div>
+          </div>
+          <div class="fig-cap">The same algorithm, running down to deep zoom — <b>identical structure at every scale</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S10 · INTERACTIVE ──────────────────────────── -->
+  <section class="slide" data-title="Make the set, then meet it">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">05 · Live investigation</span>
+        <h2 class="title">Choose <em>c</em> — watch the orbit decide</h2>
+        <p class="sub">Type a value or drag on the picture. The formula on the left and the fractal on the right are the same computation.</p>
+      </div>
+
+      <div class="live-body">
+
+        <!-- LEFT · formula panel -->
+        <div class="fml-panel">
+          <div class="big-eq">
+            $$z_{n+1} \;=\; z_n^2 + c \qquad z_0 = 0$$
+          </div>
+
+          <div class="readouts">
+            <span class="readout">c = <b id="rC">−0.750 −0.100i</b></span>
+            <span class="readout">step n = <b id="rN">16</b></span>
+          </div>
+
+          <div class="input-row">
+            <label>Re a</label>
+            <div class="spin">
+              <button onclick="nudgeC('a',-1)">−</button>
+              <input type="number" class="num" id="inA" step="0.01" value="-0.75">
+              <button onclick="nudgeC('a',1)">+</button>
+            </div>
+          </div>
+          <div class="input-row">
+            <label>Im b</label>
+            <div class="spin">
+              <button onclick="nudgeC('b',-1)">−</button>
+              <input type="number" class="num" id="inB" step="0.01" value="0.10">
+              <button onclick="nudgeC('b',1)">+</button>
+            </div>
+          </div>
+
+          <div class="slider-block">
+            <div class="lbl"><span>iteration count n — redraws together with the picture</span><span id="lblN">16 / 80</span></div>
+            <input type="range" id="slN" min="1" max="80" value="16">
+          </div>
+
+          <div class="play-row">
+            <button class="chip" id="btnPlay">▶ step</button>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--ink-faint)">presets</span>
+            <button class="chip on" id="pSeahorse" onclick="preset('seahorse',this)">Seahorse valley</button>
+            <button class="chip" id="pP2" onclick="preset('p2',this)">Period-2</button>
+            <button class="chip" id="pP3" onclick="preset('p3',this)">Period-3</button>
+            <button class="chip" id="pEsc" onclick="preset('esc',this)">Escaping</button>
+          </div>
+
+          <div class="status in" id="statusBox"><span class="w">bounded through <b id="stN">n = 16</b> — orbit stays inside |z| ≤ 2</span></div>
+
+          <div class="tape-wrap" id="tapeWrap">
+            <div class="tape" id="tape"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT · canvas -->
+        <div class="canvas-col">
+          <div class="stagebox">
+            <canvas id="liveCanvas"></canvas>
+            <div class="hud" id="liveHud">…</div>
+          </div>
+          <div class="stage-cap">
+            <div class="seg-wrap">
+              <div class="seg">
+                <button class="on" id="mM" onclick="setMode('M')">Mandelbrot</button>
+                <button id="mJ" onclick="setMode('J')">Julia</button>
+              </div>
+            </div>
+            <span id="modeCap">Mandelbrot — c lives here; orbit of 0 drawn over the set</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S11 · APPLICATIONS ──────────────────────────── -->
+  <section class="slide" data-title="From pure mathematics to the real world">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">06 · Applications</span>
+        <h2 class="title">From pure mathematics to the <em>real world</em></h2>
+        <p class="sub">The same signature — self-similar structure, deep sensitivity to a single parameter — shows up in four very different industries.</p>
+      </div>
+      <div class="app-grid" style="flex:1;align-content:center">
+        <div class="app-card">
+          <svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="var(--accent)" stroke-width="1.4">
+            <circle cx="15" cy="15" r="2.5" fill="var(--accent)" stroke="none"/>
+            <circle cx="15" cy="15" r="6"/><circle cx="15" cy="15" r="11"/><circle cx="15" cy="15" r="15" stroke-opacity=".45"/>
+          </svg>
+          <div><b>Fractal antennas</b><p>Self-similar shapes resonate at several bands at once — one compact antenna carries 5G, Wi-Fi and GPS. Dimensions shrink to a fraction of a conventional dipole. <span class="flag">VERIFY</span></p></div>
+        </div>
+        <div class="app-card">
+          <svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="var(--accent)" stroke-width="1.4">
+            <path d="M4 22 L12 6 L18 17 L26 4 V26 H4 Z"/>
+            <path d="M4 22 L12 6 M18 17 L26 4" stroke-opacity=".4"/>
+          </svg>
+          <div><b>Procedural scenery — games &amp; film</b><p>Mountain ranges, clouds, coastlines and bark are generated from fractal rules rather than hand-modeled geometry — infinite detail, tiny storage.</p></div>
+        </div>
+        <div class="app-card">
+          <svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="var(--accent)" stroke-width="1.4">
+            <path d="M8 15 a7 7 0 0 1 14 0 a5 5 0 0 1 -10 0 a3 3 0 0 1 6 0"/>
+            <circle cx="15" cy="15" r="1.6" fill="var(--accent)" stroke="none"/>
+          </svg>
+          <div><b>Chaos in cryptography</b><p>Sensitivity to initial conditions makes iterated maps good sources of pseudo-random numbers — promising material for keystreams and secure multiplexing. <span class="flag">VERIFY</span></p></div>
+        </div>
+        <div class="app-card">
+          <svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="var(--accent)" stroke-width="1.4">
+            <rect x="6" y="6" width="18" height="18"/>
+            <line x1="15" y1="6" x2="15" y2="24" stroke-opacity=".45"/>
+            <line x1="6" y1="15" x2="24" y2="15" stroke-opacity=".45"/>
+            <rect x="15" y="6" width="9" height="9" fill="var(--accent-dim)"/>
+          </svg>
+          <div><b>Fractal (IFS) compression</b><p>Store a scene as the few shrinking maps that regenerate it — a radical idea from Barnsley. Real-world adoption was modest, but it pushed the field of image coding.<span class="flag">VERIFY</span></p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S12 · RESEARCH ──────────────────────────── -->
+  <section class="slide" data-title="Research paper & future work">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">07 · Research &amp; future work</span>
+        <h2 class="title">A short shelf, a long <em>agenda</em></h2>
+        <p class="sub">Four references carry the whole story we told. Two directions keep it alive, and one question remains open.</p>
+      </div>
+      <div class="cols c2a" style="grid-template-columns:minmax(0,56fr) minmax(0,44fr);align-items:start">
+        <div class="bib" style="align-self:start">
+          <div class="bib-item"><span class="bc">[1]</span><div><cite>B. B. Mandelbrot — Fractal aspects of the iteration of z ↦ λz(1−z) for complex λ and z, <em>Ann. N.Y. Acad. Sci.</em> 357 (1980)</cite><div class="src">the first published view of the set <span class="flag">VERIFY</span></div></div></div>
+          <div class="bib-item"><span class="bc">[2]</span><div><cite>A. Douady &amp; J. H. Hubbard — Itération des polynômes quadratiques complexes, <em>C. R. Acad. Sci. Paris</em> 294 (1982); <em>Étude dynamique des polynômes complexes</em>, Orsay (1984)</cite><div class="src">proved connectedness of M and much of its topology <span class="flag">VERIFY</span></div></div></div>
+          <div class="bib-item"><span class="bc">[3]</span><div><cite>M. Shishikura — The Hausdorff dimension of the boundary of the Mandelbrot set and Julia sets, <em>Ann. of Math.</em> 147 (1998) 225–267</cite><div class="src">dim_H(∂M) = 2 — the boundary fills space</div></div></div>
+          <div class="bib-item"><span class="bc">[4]</span><div><cite>K. I. Martin — Perturbation theory for deep Mandelbrot plotting (2013), informal web paper</cite><div class="src">one reference orbit + offsets ⇒ zooms past 10¹⁰⁰⁰ in real time <span class="flag">non-peer-reviewed</span></div></div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div class="fut">
+            <div class="fut-item"><span class="fn">→</span><p><b style="font-family:var(--serif)">Rendering at the speed of hardware</b> — WebGPU/webGL and GPU raymarching bring zoom cinema to the browser.<small>3Blue1Brown's deep zooms cheap enough for a classroom.</small></p></div>
+            <div class="fut-item"><span class="fn">→</span><p><b style="font-family:var(--serif)">Perturbation + arbitrary precision</b> — one precise orbit with small per-pixel corrections defeats floating-point limits.<small>the way past 10¹⁰⁰⁰ magnification.</small></p></div>
+            <div class="fut-item"><span class="fn">→</span><p><b style="font-family:var(--serif)">Machine learning on the boundary</b> — classifiers trained on escape-time features to guess membership and predict Julia-type behaviour.<span class="flag">VERIFY</span></p></div>
+          </div>
+          <div class="note">
+            <b>Still open — the MLC conjecture.</b> Is the Mandelbrot set locally connected? The answer decides how the intricate filaments at points like seahorse valley actually attach. Unproved since Douady &amp; Hubbard posed it.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S13 · CONCLUSION ──────────────────────────── -->
+  <section class="slide" data-title="Conclusion">
+    <div class="slide-in">
+      <div class="hd">
+        <span class="kick">08 · Conclusion</span>
+        <h2 class="title">What a single map <em>teaches</em></h2>
+      </div>
+      <div class="cols" style="grid-template-rows:1fr auto;gap:clamp(20px,4vh,40px)">
+        <div class="take">
+          <div class="take-item"><span class="tn">i.</span><b>Simplicity → complexity</b><p>One quadratic rule, repeated, manufactures detail that never ends — complexity is an outcome, not an input.</p></div>
+          <div class="take-item"><span class="tn">ii.</span><b>One equation, many fields</b><p>The same map bridges complex analysis, dynamics, computation and graphics — a single object studied from four directions.</p></div>
+          <div class="take-item"><span class="tn">iii.</span><b>Practice followed theory</b><p>1918 mathematics, 1980 hardware, 1990s engineering, open questions today — each century's tool unlocked the next.</p></div>
+        </div>
+        <div class="close-quote">
+          "Bottomless wonders spring from simple rules, repeated without end."
+          <span class="who">— Benoît B. Mandelbrot</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── S14 · THANKS ──────────────────────────── -->
+  <section class="slide" data-title="Thank you">
+    <div class="slide-in thx">
+      <div class="title-kicker">Presentation concluded — 10 min talk + 2 min Q&amp;A</div>
+      <h1 class="hero">Thank <em>you</em></h1>
+      <p class="hero-deck" style="color:var(--ink-dim)">Questions and discussion.</p>
+      <div class="pills">
+        <span>Samiul Haque Seam <i>2023200000160</i></span>
+        <span>Md Shahadat Hossan <i>2023200000599</i></span>
+        <span>Azim Pial <i>2023200000601</i></span>
+        <span>Wahid Imtiaz Arnob <i>2023200000616</i></span>
+        <span>Naima Sultana <i>2023200000636</i></span>
+      </div>
+      <div class="meta-line" style="margin-top:auto">
+        <span style="color:var(--ink-dim)">Department of Computer Science &amp; Engineering</span>
+        <span style="color:var(--ink-dim)">Southeast University</span>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <!-- ============================== FOOTER ============================== -->
+  <footer class="ftr">
+    <div class="prog" id="prog"></div>
+    <span class="slno">slide <b id="cur">1</b> <span style="color:var(--ink-faint)">/</span> <span id="tot">14</span></span>
+    <div class="nav">
+      <button class="btn" onclick="prevSlide()" title="Previous (←)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 6 L8 12 L14 18"/></svg>
+      </button>
+      <button class="btn" onclick="nextSlide()" title="Next (→ / space)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 6 L16 12 L10 18"/></svg>
+      </button>
+    </div>
+  </footer>
+</div>
+
+<!-- overview modal -->
+<div class="ovl" id="ovl" onclick="if(event.target===this)toggleOverview()">
+  <div class="ovl-in">
+    <h3>Slides</h3>
+    <p>Jump to any point in the talk</p>
+    <div class="ogrid" id="ogrid"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DECK NAVIGATION
+   ============================================================ */
+const slides = Array.from(document.querySelectorAll('.slide'));
+const total = slides.length;
+let idx = 0, liveTimer = null;
+
+function showSlide(i){
+  idx = Math.max(0, Math.min(total-1, i));
+  slides.forEach((s,k)=>s.classList.toggle('active', k===idx));
+  document.getElementById('cur').textContent = idx+1;
+  document.getElementById('tot').textContent = total;
+  document.getElementById('prog').style.width = ((idx+1)/total*100)+'%';
+  teardownSlide();
+  if (slides[idx].querySelector('#liveCanvas')) startLive();
+  if (slides[idx].querySelector('#azCanvas')) startAZ();
+}
+function teardownSlide(){
+  stopsPlay();
+  stopAZ();
+  if (liveRAF){ cancelAnimationFrame(liveRAF); liveRAF=null; liveDrawPending=false; }
+}
+const nextSlide = ()=>showSlide(idx+1);
+const prevSlide = ()=>showSlide(idx-1);
+function goToSlide(i){ showSlide(i); closeOvl(); }
+
+/* overview */
+function toggleOverview(){
+  const o=document.getElementById('ovl');
+  o.classList.toggle('open');
+  if (o.classList.contains('open')) buildOvl();
+}
+function closeOvl(){ document.getElementById('ovl').classList.remove('open'); }
+function buildOvl(){
+  const g=document.getElementById('ogrid'); g.innerHTML='';
+  slides.forEach((s,k)=>{
+    const c=document.createElement('div'); c.className='ocard';
+    c.innerHTML=`<span class="n">${String(k+1).padStart(2,'0')}</span><span class="t">${s.dataset.title}</span>`;
+    c.onclick=()=>goToSlide(k); g.appendChild(c);
+  });
+}
+function toggleFullscreen(){
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  else document.documentElement.requestFullscreen().catch(()=>{});
+}
+
+/* theme */
+const body=document.body;
+function toggleTheme(){
+  body.classList.toggle('light');
+  localStorage.setItem('mf-theme', body.classList.contains('light')?'light':'dark');
+  rerenderActiveCanvases();
+}
+function rerenderActiveCanvases(){
+  if (slides[idx].querySelector('#liveCanvas')) renderLive();
+  if (slides[idx].querySelector('#azCanvas')) renderAZCanvas();
+}
+if(localStorage.getItem('mf-theme')==='light') body.classList.add('light');
+
+/* keyboard */
+window.addEventListener('keydown',(e)=>{
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();nextSlide();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prevSlide();}
+  else if(e.key==='Home'){e.preventDefault();goToSlide(0);}
+  else if(e.key==='End'){e.preventDefault();goToSlide(total-1);}
+  else if(e.key.toLowerCase()==='f')toggleFullscreen();
+  else if(e.key.toLowerCase()==='o')toggleOverview();
+  else if(e.key.toLowerCase()==='t')toggleTheme();
+});
+
+/* ============================================================
+   CANVAS ENGINE — capped escape-time rendering + overlays
+   ============================================================ */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+const STOPS=[[42,34,22],[96,74,40],[160,120,58],[217,164,65],[241,207,122],[247,238,210]];
+function pal(t){
+  t=clamp(t,0,0.9999); const x=t*(STOPS.length-1);
+  const i=Math.floor(x), u=x-i;
+  return [lerp(STOPS[i][0],STOPS[i+1][0],u)|0, lerp(STOPS[i][1],STOPS[i+1][1],u)|0, lerp(STOPS[i][2],STOPS[i+1][2],u)|0];
+}
+function mix(c1,c2,t){ return [c1[0]+(c2[0]-c1[0])*t, c1[1]+(c2[1]-c1[1])*t, c1[2]+(c2[2]-c1[2])*t]; }
+function rgba(c,a){ return `rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`; }
+
+const isLight=()=>body.classList.contains('light');
+const themeCols=()=>{
+  const L=isLight();
+  return {
+    bgF:  L?'#F0EBE1':'#0F0D08',
+    solid:L?'#1B1710':'#080705',
+    grid: L?'rgba(33,28,20,.08)':'rgba(236,231,219,.07)',
+    axis: L?'rgba(33,28,20,.45)':'rgba(236,231,219,.38)',
+    txt:  L?'rgba(33,28,20,.55)':'rgba(206,199,184,.7)',
+    faint:L?'rgba(33,28,20,.35)':'rgba(206,199,184,.45)'
+  };
+};
+
+/* orbit of 0 under z²+c; returns points and first escape index */
+function orbitOf(ca,cb,maxN){
+  const o=[{x:0,y:0}]; let x=0,y=0,esc=-1,xi, yi;
+  for(let k=0;k<maxN;k++){
+    if(x*x+y*y>4){ esc=k; break; }
+    xi=x; yi=y;
+    const nx=xi*xi-yi*yi+ca, ny=2*xi*yi+cb;
+    x=nx; y=ny; o.push({x:nx,y:ny});
+  }
+  return {o,esc};
+}
+
+/* core renderer. mode 'M'|'J' ; params:
+   {mode, ca, cb, n, cx, cy, zoom, grid, ring, cardioid, overlay} */
+function drawPlane(cv, P){
+  const rect=cv.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  let W=Math.floor(rect.width*dpr), H=Math.floor(rect.height*dpr);
+  W=Math.min(W,760); H=Math.min(H,600);
+  if(W<8||H<8) return;
+  if(cv.width!==W)cv.width=W; if(cv.height!==H)cv.height=H;
+  const ctx=cv.getContext('2d');
+  const T=themeCols();
+  ctx.fillStyle=T.bgF; ctx.fillRect(0,0,W,H);
+
+  const zoom=P.zoom||1;
+  let ww,wh,cx,cy;
+  if(P.mode==='J'){
+    cx=0; cy=0; wh=4.0; ww=wh*(W/H)/zoom;
+  } else {
+    cx=(P.cx!==undefined)?P.cx:-0.55; cy=(P.cy!==undefined)?P.cy:0;
+    const baseW=3.6; ww=baseW/zoom; wh=ww*(H/W);
+  }
+  const minR=cx-ww/2, maxI=cy+wh/2;
+
+  const maxN=Math.max(1,P.n|0);
+  const img=ctx.createImageData(W,H), d=img.data;
+  const palFn=(x)=>pal(x);
+  const isM=P.mode!=='J';
+  const ca=P.ca, cb=P.cb;
+
+  for(let py=0;py<H;py++){
+    const im=maxI-(py/H)*wh;
+    const row=py*W*4;
+    for(let px=0;px<W;px++){
+      const re=minR+(px/W)*ww;
+      let zr,zi,ci0,ci1;
+      if(isM){ zr=0; zi=0; ci0=re; ci1=im; }
+      else{ zr=re; zi=im; ci0=ca; ci1=cb; }
+      let x2=zr*zr, y2=zi*zi, i=0;
+      while(x2+y2<=4 && i<maxN){
+        zi=2*zr*zi+ci1;
+        zr=x2-y2+ci0;
+        x2=zr*zr; y2=zi*zi; i++;
+      }
+      const p=row+px*4;
+      if(i>=maxN && x2+y2<=4){
+        d[p]=T.solid[0]; d[p+1]=T.solid[1]; d[p+2]=T.solid[2]; d[p+3]=255;
+      } else {
+        let R2=x2+y2; if(R2<1e-12)R2=1e-12;
+        const v=i+1 - Math.log(Math.log(R2)/2/Math.LN2)/Math.LN2;  /* smooth count */
+        const f=clamp(Math.sqrt(v/90),0,1);
+        const base=palFn((v/16)%1);
+        const col=mix(T.bgF,base,f);
+        d[p]=col[0]; d[p+1]=col[1]; d[p+2]=col[2]; d[p+3]=255;
+      }
+    }
+  }
+  ctx.putImageData(img,0,0);
+
+  /* --- overlays --- */
+  const ox=W/2, oy=H/2;
+  const sx=(re)=>( (re-cx)/ww + 0.5 )*W;
+  const sy=(im)=>( (cy-im)/wh + 0.5 )*H;
+  const rad=(r)=>r/wh*H;
+
+  // grid
+  if(P.grid!==false && zoom<6){
+    ctx.font='10px "IBM Plex Mono",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(let g=-6;g<=6;g+=0.5){
+      const rcx=Math.round(g*2)/2, icz=Math.round(g*2)/2;
+      ctx.beginPath(); ctx.strokeStyle=T.grid; ctx.lineWidth=1;
+      ctx.moveTo(sx(rcx),0); ctx.lineTo(sx(rcx),H);
+      ctx.moveTo(0,sy(icz)); ctx.lineTo(W,sy(icz));
+      ctx.stroke();
+      if(Math.abs(g-Math.round(g))<0.01){
+        ctx.fillStyle=T.faint;
+        if(g>=Math.ceil(minR)&&g<=Math.ceil(minR+ww)) ctx.fillText(g.toFixed(0),sx(g),oy+rad(0.14));
+        if(g>=-Math.ceil(cy-wh/2)&&g<=Math.ceil(cy+wh/2)) ctx.fillText('·',sx(0)+0,sy(-g));
+      }
+    }
+  }
+  // axes
+  ctx.strokeStyle=T.axis; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(W,oy); ctx.moveTo(ox,0); ctx.lineTo(ox,H); ctx.stroke();
+  ctx.fillStyle=T.txt; ctx.fillText('Re',W-14,oy+13); ctx.fillText('Im',ox+13,14);
+
+  // bailout ring
+  if(P.ring!==false){
+    ctx.beginPath(); ctx.arc(ox,oy,rad(2),0,Math.PI*2);
+    ctx.strokeStyle=P.mode==='J'?'rgba(207,106,71,.5)':'rgba(207,106,71,.45)'; ctx.lineWidth=1; ctx.setLineDash([4,5]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(207,106,71,.7)'; ctx.fillText('|z|=2',ox+14,oy+rad(2)+11);
+    ctx.beginPath(); ctx.arc(ox,oy,rad(1),0,Math.PI*2);
+    ctx.strokeStyle=T.grid; ctx.lineWidth=1; ctx.setLineDash([2,6]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // cardioid outline (M mode)
+  if(P.cardioid!==false && P.mode==='M' && zoom<6){
+    ctx.beginPath();
+    for(let th=0;th<=Math.PI*2+0.01;th+=0.03){
+      const r=0.5*(1-Math.cos(th));
+      const re=r*Math.cos(th)+0.25, im=r*Math.sin(th);
+      const X=sx(re),Y=sy(im);
+      th===0?ctx.moveTo(X,Y):ctx.lineTo(X,Y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle=rgba([217,164,65],[P.mode==='J'?0:0.6]); ctx.lineWidth=1;
+    ctx.stroke();
+  }
+
+  // orbit overlay
+  if(P.overlay){
+    const {o,esc}=orbitOf(ca,cb,80);
+    const upto=Math.min(P.n,o.length-1);
+    const accent=[217,164,65], red=[207,106,71];
+    for(let k=0;k<upto;k++){
+      const x1=sx(o[k].x), y1=sy(o[k].y);
+      const x2=sx(o[k+1].x), y2=sy(o[k+1].y);
+      const lastSeg=(esc!==-1 && k+1===esc);
+      if(x2<0||x2>W||y2<0||y2>H||x1<0||x1>W||y1<0||y1>H) continue;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+      const t=k/upto;
+      ctx.strokeStyle=lastSeg?rgba(red,0.9):rgba(mix(accent,[249,233,196],t),0.45+0.5*t);
+      ctx.lineWidth=lastSeg?2:1.6; ctx.stroke();
+    }
+    for(let k=0;k<=upto;k++){
+      const X=sx(o[k].x),Y=sy(o[k].y);
+      const isEnd=(k===upto), isEsc=(esc!==-1&&k===esc);
+      if(X<0||Y<0||X>W||Y>H) continue;
+      ctx.beginPath();
+      ctx.fillStyle=k===0?'#fff':(isEsc?'#CF6A47':(isEnd?'#F0C868':'#D9A441'));
+      ctx.arc(X,Y,k===0?3.5:(isEnd?4:2.6),0,Math.PI*2); ctx.fill();
+      if(k===0){ ctx.fillStyle='rgba(240,200,104,.25)'; ctx.beginPath(); ctx.arc(X,Y,7,0,Math.PI*2); ctx.fill(); }
+    }
+    // c marker on M plane
+    if(P.mode==='M'){
+      const X=sx(ca),Y=sy(cb);
+      ctx.beginPath(); ctx.arc(X,Y,5,0,Math.PI*2);
+      ctx.fillStyle='#F0C868'; ctx.fill();
+      ctx.beginPath(); ctx.arc(X,Y,10,0,Math.PI*2);
+      ctx.strokeStyle='rgba(240,200,104,.6)'; ctx.lineWidth=1.2; ctx.stroke();
+    }
+  }
+}
+
+/* ============================================================
+   INTERACTIVE SLIDE
+   ============================================================ */
+const liveCv=()=>document.getElementById('liveCanvas');
+
+const MAXN=80, MAXORB=80;
+let st={ca:-0.75, cb:0.10, n:1, mode:'M'};
+let liveRAF=null, liveDrawPending=false, animT=null;
+
+function nudgeC(ax,dir){
+  const v=(ax==='a'?st.ca:st.cb)+dir*0.01;
+  ax==='a'?st.ca=clamp(v,-2.2,1.2):st.cb=clamp(v,-1.4,1.4);
+  refreshInputs(); refreshLive();
+}
+function preset(name,btn){
+  stopsPlay();
+  document.querySelectorAll('.play-row .chip').forEach(c=>c.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  if(name==='seahorse'){st.ca=-0.75;st.cb=0.10;}
+  else if(name==='p2'){st.ca=-1.0;st.cb=0.0;}
+  else if(name==='p3'){st.ca=-0.12;st.cb=0.74;}
+  else if(name==='esc'){st.ca=0.6;st.cb=0.6;}
+  refreshInputs(); refreshLive();
+  beginBuild();
+}
+function setMode(m){
+  st.mode=m;
+  document.getElementById('mM').classList.toggle('on',m==='M');
+  document.getElementById('mJ').classList.toggle('on',m==='J');
+  document.getElementById('modeCap').textContent = m==='M'
+    ? 'Mandelbrot — the parameter plane: c lives here, its orbit drawn over the set'
+    : 'Julia — the dynamical plane of z ↦ z² + c for your chosen c';
+  refreshLive();
+}
+function refreshInputs(){
+  document.getElementById('inA').value=st.ca.toFixed(3);
+  document.getElementById('inB').value=st.cb.toFixed(3);
+  document.getElementById('slN').value=st.n;
+}
+function refreshLive(){
+  document.getElementById('rC').textContent=`${st.ca.toFixed(3)} ${st.cb>=0?'+':'−'} ${Math.abs(st.cb).toFixed(3)}i`;
+  document.getElementById('rN').textContent=st.n;
+  document.getElementById('lblN').textContent=`${st.n} / ${MAXN}`;
+
+  const {o,esc}=orbitOf(st.ca,st.cb,MAXORB);
+  const upto=Math.min(st.n,o.length-1);
+  const escNow=(esc!==-1 && esc<=upto);
+
+  // tape
+  const ta=document.getElementById('tape');
+  let html='<div class="tape-row head"><span>n</span><span>z_n</span><span class="val">|z_n|</span></div>';
+  for(let k=0;k<=upto;k++){
+    const z=o[k]; const abs=Math.sqrt(z.x*z.x+z.y*z.y);
+    const cls=escNow&&k===esc?' esc':'';
+    const hi=escNow&&k===esc?' hl':'';
+    const f=(x)=>x.toFixed(3);
+    html+=`<div class="tape-row${hi}${cls}"><span>${k}</span><span>${f(z.x)} ${z.y>=0?'+':'−'} ${f(Math.abs(z.y))}i</span><span class="val">${f(abs)}</span></div>`;
+  }
+  ta.innerHTML=html;
+  const tw=document.getElementById('tapeWrap'); tw.scrollTop=tw.scrollHeight;
+
+  // status
+  const sb=document.getElementById('statusBox');
+  const w=document.querySelector('#statusBox .w');
+  if(escNow){
+    sb.className='status out';
+    w.innerHTML=`escaped at <b>n = ${esc}</b> — |z_${esc}| &gt; 2, therefore c ∉ M`;
+  }else if(st.n>=MAXN){
+    sb.className='status in';
+    w.innerHTML=`no escape in <b>${MAXN}</b> steps — orbit stays ≤ 2, deep inside M`;
+  }else{
+    sb.className='status in';
+    w.innerHTML=`bounded through <b>n = ${st.n}</b> — each |z_k| ≤ 2, still inside (keep iterating…)`;
+  }
+  requestLiveDraw();
+}
+
+function requestLiveDraw(getResult){
+  if(liveRAF) return;
+  liveDrawPending=true;
+  liveRAF=requestAnimationFrame(()=>{ liveRAF=null; if(liveDrawPending){ liveDrawPending=false; renderLive(); } });
+}
+function renderLive(){
+  const cv=liveCv(); if(!cv) return;
+  drawPlane(cv,{mode:st.mode,ca:st.ca,cb:st.cb,n:st.n,cx:-0.55,cy:0,zoom:1,overlay:true});
+  const {esc}=orbitOf(st.ca,st.cb,MAXORB);
+  const escNow=(esc!==-1 && esc<=st.n);
+  const h=document.getElementById('liveHud');
+  const modeName=st.mode==='M'?'MANDELBROT':'JULIA';
+  const cTxt=`c = ${st.ca.toFixed(3)} ${st.cb>=0?'+':'−'} ${Math.abs(st.cb).toFixed(3)}i`;
+  h.innerHTML=`<b>${modeName}</b> · ${cTxt} · n = ${st.n}<br>`+(escNow?`<span class="rk">escaped at n=${esc}</span>`:`<span>bounded through n=${st.n}</span>`);
+}
+
+function startLive(){
+  st.ca=-0.75; st.cb=0.10;
+  st.n=1;
+  document.querySelectorAll('.play-row .chip').forEach(c=>c.classList.remove('on'));
+  document.getElementById('pSeahorse').classList.add('on');
+  refreshInputs(); refreshLive();
+  beginBuild();
+}
+function startAZ(){ if(!az.on) toggleAZ(); renderAZCanvas(); }
+
+// input bindings
+document.getElementById('inA').addEventListener('input',e=>{ st.ca=clamp(parseFloat(e.target.value)||0,-2.2,1.2); refreshLive(); });
+document.getElementById('inB').addEventListener('input',e=>{ st.cb=clamp(parseFloat(e.target.value)||0,-1.4,1.4); refreshLive(); });
+document.getElementById('slN').addEventListener('input',e=>{ st.n=parseInt(e.target.value,10); refreshLive(); });
+
+/* play button — builds the diagram iteration by iteration from n = 1 */
+function playTick(){
+  if(st.n>=MAXN){ stopsPlay(); refreshLive(); return; }
+  st.n++; document.getElementById('slN').value=st.n; refreshLive();
+}
+function togglePlay(){
+  if(animT){ stopsPlay(); return; }
+  document.getElementById('btnPlay').textContent='pause';
+  animT=setInterval(playTick,130);
+}
+function beginBuild(){
+  if(animT) stopsPlay();
+  st.n=1; document.getElementById('slN').value=1;
+  document.getElementById('btnPlay').textContent='pause';
+  animT=setInterval(playTick,130);
+}
+function stopsPlay(){
+  if(animT){ clearInterval(animT); animT=null; }
+  document.getElementById('btnPlay').textContent='▶ step';
+}
+document.getElementById('btnPlay').addEventListener('click',togglePlay);
+
+/* drag on live canvas to choose c */
+const cvLive=document.getElementById('liveCanvas');
+const cx0=-0.55, cy0=0, ww0=3.6;
+function pickC(e){
+  const rect=cvLive.getBoundingClientRect();
+  const x=(e.clientX-rect.left)/rect.width, y=(e.clientY-rect.top)/rect.height;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const W=Math.min(Math.floor(rect.width*dpr),760);
+  const H=Math.min(Math.floor(rect.height*dpr),600);
+  const wh0=ww0*(H/W);
+  const re=cx0-ww0/2+x*ww0, im=cy0+wh0/2-y*wh0;
+  st.ca=clamp(re,-2.4,1.4); st.cb=clamp(im,-1.5,1.5);
+  st.n=1; document.getElementById('slN').value=1;
+  refreshInputs();
+  document.querySelectorAll('.play-row .chip').forEach(c=>c.classList.remove('on'));
+  refreshLive();
+}
+if(cvLive){
+  cvLive.addEventListener('pointerdown',(e)=>{ stopsPlay(); cvLive.setPointerCapture(e.pointerId); pickC(e); });
+  cvLive.addEventListener('pointermove',(e)=>{ if(e.buttons) pickC(e); });
+}
+
+/* ============================================================
+   AUTOZOOM SLIDE
+   ============================================================ */
+const az={on:true, t0:null, raf:null};
+const AZ_T={x:-0.7436438870371587,y:0.1318259042053119};
+function toggleAZ(){
+  az.on=!az.on;
+  document.getElementById('azPlay').textContent=az.on?'pause':'play';
+  if(az.on){ az.t0=null; az.raf=requestAnimationFrame(azStep); }
+  else if(az.raf){ cancelAnimationFrame(az.raf); az.raf=null; renderAZCanvas(true); }
+}
+function azReset(){ az.t0=null; renderAZCanvas(); document.getElementById('azPlay').textContent='pause'; if(!az.on){az.on=true;} }
+function azStep(ts){
+  if(!az.on) return;
+  if(!az.t0) az.t0=ts;
+  const el=(ts-az.t0)/1000;
+  const w=(Math.sin(el*0.35-Math.PI/2)+1)/2;
+  const e=w*w*(3-2*w);
+  renderAZZoom(e);
+  az.raf=requestAnimationFrame(azStep);
+}
+function renderAZZoom(e){
+  const zoom=Math.pow(380,e);
+  const n=Math.round(90+e*140);
+  const cv=document.getElementById('azCanvas'); if(!cv) return;
+  drawPlane(cv,{mode:'M',ca:st.ca,cb:st.cb,n:n,cx:-0.75+(AZ_T.x+0.75)*e,cy:AZ_T.y*e,zoom:zoom,grid:false,ring:false,cardioid:false,overlay:false});
+  document.getElementById('azHud').textContent=`${Math.round(zoom)}× · ${n} it`;
+}
+document.getElementById('azPlay').addEventListener('click',toggleAZ);
+function renderAZCanvas(reset){ 
+  if(reset){ renderAZZoom(0); return; }
+  if(az.on){ az.t0=null; if(!az.raf) az.raf=requestAnimationFrame(azStep); }
+  else renderAZZoom(0);
+}
+function stopAZ(){ if(az.raf){ cancelAnimationFrame(az.raf); az.raf=null; } }
+window.addEventListener('resize',()=>{ if(slides[idx].querySelector('#liveCanvas')) renderLive(); if(slides[idx].querySelector('#azCanvas')) renderAZCanvas(true); });
+
+/* init */
+showSlide(0);
+</script>
+</body>
+</html>
